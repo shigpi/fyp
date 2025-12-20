@@ -9,6 +9,11 @@ wheels/
 
 # Virtual environments
 .venv
+venv/
 
 # Apple
 .DS_Store
+
+# Miscelleneous
+design_ref
+to learn

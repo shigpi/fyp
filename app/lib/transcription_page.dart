@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-// import 'dart:async';
 
 class TranscriptionPage extends StatefulWidget {
   const TranscriptionPage({super.key});
@@ -11,7 +11,10 @@ class TranscriptionPage extends StatefulWidget {
 class _TranscriptionPageState extends State<TranscriptionPage>
     with SingleTickerProviderStateMixin {
   bool _isRecording = false;
-  String _transcript = '';
+  bool _isLoading = false;
+  String? _transcript;
+  int _recordingTime = 0;
+  Timer? _timer;
   late AnimationController _animationController;
 
   @override
@@ -19,192 +22,262 @@ class _TranscriptionPageState extends State<TranscriptionPage>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _animationController.dispose();
     super.dispose();
   }
 
   void _toggleRecording() {
-    setState(() {
-      if (_isRecording) {
-        // Stop recording
+    if (_isRecording) {
+      // Stop recording
+      _timer?.cancel();
+      setState(() {
         _isRecording = false;
-        // Generate mock transcript
-        _transcript =
-            "This is a mock transcript. In a real app, this would be the text generated from your speech. The quick brown fox jumps over the lazy dog. Flutter is amazing for building beautiful UIs.";
-      } else {
-        // Start recording
+        _isLoading = true;
+      });
+
+      // Simulate processing
+      Future.delayed(const Duration(seconds: 2), () {
+        setState(() {
+          _isLoading = false;
+          _transcript =
+              "This is a mock transcript. In a real app, this would be the text generated from your speech. The quick brown fox jumps over the lazy dog. Flutter is amazing for building beautiful UIs.";
+        });
+      });
+    } else {
+      // Start recording
+      setState(() {
         _isRecording = true;
-        _transcript = ''; // Clear previous transcript
-      }
-    });
+        _transcript = null;
+        _recordingTime = 0;
+      });
+
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          _recordingTime++;
+        });
+      });
+    }
+  }
+
+  String _formatTime(int seconds) {
+    final mins = (seconds ~/ 60).toString().padLeft(2, '0');
+    final secs = (seconds % 60).toString().padLeft(2, '0');
+    return '$mins:$secs';
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const Text(
-          'Transcription',
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
-        ),
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFF0F2027), // Deep Blue
-              const Color(0xFF203A43), // Teal-ish
-              const Color(0xFF2C5364), // Darker Teal
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: _buildContent(colorScheme),
-                ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: const Icon(Icons.arrow_back, color: Color(0xFFA3A3A3), size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Multilingual Mode',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
-              _buildBottomControls(colorScheme),
-            ],
-          ),
+            ),
+            const Divider(height: 1, color: Color(0xFF171717)),
+
+            // Content
+            Expanded(
+              child: _buildContent(),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildContent(ColorScheme colorScheme) {
-    if (_isRecording) {
+  Widget _buildContent() {
+    if (_isLoading) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            FadeTransition(
-              opacity: _animationController,
-              child: Icon(
-                Icons.mic,
-                size: 80,
-                color: colorScheme.primary,
+            const SizedBox(
+              width: 48,
+              height: 48,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 4,
               ),
             ),
-            const SizedBox(height: 24),
-            Text(
-              'Listening...',
+            const SizedBox(height: 20),
+            const Text(
+              'Processing transcription...',
               style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w300,
-                color: colorScheme.onSurface.withOpacity(0.8),
+                color: Color(0xFFA3A3A3),
+                fontSize: 14,
               ),
             ),
           ],
         ),
       );
-    } else if (_transcript.isNotEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: colorScheme.surface.withOpacity(0.8),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+    } else if (_transcript != null) {
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Transcription Result',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF171717), // Neutral 900
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF262626)),
+                ),
+                child: SingleChildScrollView(
+                  child: Text(
+                    _transcript!,
+                    style: const TextStyle(
+                      color: Color(0xFFE5E5E5), // Neutral 200
+                      fontSize: 14,
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _transcript = null;
+                    _recordingTime = 0;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('New Recording'),
+              ),
             ),
           ],
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Transcript',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.primary,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _transcript,
-                style: TextStyle(
-                  fontSize: 18,
-                  height: 1.6,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-            ],
-          ),
         ),
       );
     } else {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.graphic_eq,
-              size: 80,
-              color: colorScheme.onSurface.withOpacity(0.2),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Tap to Record',
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (_isRecording) ...[
+            const Text(
+              'Recording...',
               style: TextStyle(
-                fontSize: 20,
-                color: colorScheme.onSurface.withOpacity(0.5),
+                color: Color(0xFFA3A3A3),
+                fontSize: 14,
               ),
             ),
-          ],
-        ),
+            const SizedBox(height: 6),
+            Text(
+              _formatTime(_recordingTime),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 40),
+          ] else
+            const Padding(
+              padding: EdgeInsets.only(bottom: 40),
+              child: Text(
+                'Tap to start recording',
+                style: TextStyle(
+                  color: Color(0xFFA3A3A3),
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          
+          GestureDetector(
+            onTap: _toggleRecording,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (_isRecording)
+                  FadeTransition(
+                    opacity: _animationController,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.1),
+                      ),
+                    ),
+                  ),
+                Container(
+                  width: 96,
+                  height: 96,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _isRecording ? Colors.white : const Color(0xFF171717),
+                    border: Border.all(
+                      color: _isRecording ? Colors.white : const Color(0xFF404040),
+                      width: 2,
+                    ),
+                  ),
+                  child: Icon(
+                    _isRecording ? Icons.stop : Icons.mic,
+                    color: _isRecording ? Colors.black : Colors.white,
+                    size: 36,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 40),
+          Text(
+            _isRecording ? 'Tap the square to stop' : 'Tap the microphone to begin',
+            style: const TextStyle(
+              color: Color(0xFF737373),
+              fontSize: 12,
+            ),
+          ),
+        ],
       );
     }
-  }
-
-  Widget _buildBottomControls(ColorScheme colorScheme) {
-    return Container(
-      padding: const EdgeInsets.only(bottom: 48, top: 24),
-      child: GestureDetector(
-        onTap: _toggleRecording,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          height: 80,
-          width: 80,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _isRecording ? Colors.redAccent : colorScheme.primary,
-            boxShadow: [
-              BoxShadow(
-                color: (_isRecording ? Colors.redAccent : colorScheme.primary)
-                    .withOpacity(0.4),
-                blurRadius: 20,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: Icon(
-            _isRecording ? Icons.stop : Icons.mic,
-            color: Colors.white,
-            size: 36,
-          ),
-        ),
-      ),
-    );
   }
 }

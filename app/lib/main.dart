@@ -1,4 +1,4 @@
-import 'package:app/transcription_page.dart';
+import 'package:app/pages/login_page.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -11,24 +11,33 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Transcription App',
+      title: 'VoiceScribe',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6C63FF), // Vibrant Purple-Blue
-          brightness: Brightness.dark,
-          surface: const Color(0xFF121212), // Dark background
-          background: const Color(0xFF0A0A0A), // Slightly darker background
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: Colors.black,
+        colorScheme: const ColorScheme.dark(
+          primary: Colors.white,
+          onPrimary: Colors.black,
+          surface: Colors.black,
+          onSurface: Colors.white,
+          background: Colors.black,
+          onBackground: Colors.white,
         ),
-        scaffoldBackgroundColor: const Color(0xFF0A0A0A),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
+          backgroundColor: Colors.black,
           elevation: 0,
           centerTitle: true,
+          titleTextStyle: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+          iconTheme: IconThemeData(color: Colors.white),
         ),
       ),
-      home: const TranscriptionPage(),
+      home: const LoginPage(),
     );
   }
 }

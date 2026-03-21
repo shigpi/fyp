@@ -14,7 +14,7 @@ class _HomePageState extends State<HomePage> {
   void _startRecording(String mode) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const TranscriptionPage(), // We'll update this to accept mode later
+        builder: (context) => TranscriptionPage(mode: mode),
       ),
     );
   }

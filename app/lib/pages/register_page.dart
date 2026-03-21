@@ -2,6 +2,7 @@ import 'package:app/widgets/custom_button.dart';
 import 'package:app/widgets/custom_input.dart';
 import 'package:app/services/api_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -15,6 +16,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _dobController = TextEditingController();
 
   final _apiService = ApiService();
 
@@ -31,6 +34,8 @@ class _RegisterPageState extends State<RegisterPage> {
         _nameController.text,
         _emailController.text,
         _passwordController.text,
+        phone: _phoneController.text,
+        dob: _dobController.text,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -47,12 +52,61 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
+  void _showDatePicker() {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (_) => Container(
+        height: 300,
+        color: const Color(0xFF171717),
+        child: Column(
+          children: [
+            Container(
+              height: 48,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    child: const Text('Done', style: TextStyle(color: Colors.blue)),
+                    onPressed: () => Navigator.of(context).pop(),
+                  )
+                ],
+              ),
+            ),
+            Expanded(
+              child: CupertinoTheme(
+                data: const CupertinoThemeData(
+                  textTheme: CupertinoTextThemeData(
+                    dateTimePickerTextStyle: TextStyle(color: Colors.white, fontSize: 20),
+                  ),
+                ),
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.date,
+                  initialDateTime: DateTime(2000, 1, 1),
+                  maximumDate: DateTime.now(),
+                  onDateTimeChanged: (DateTime newDate) {
+                    setState(() {
+                      _dobController.text = "${newDate.year}-${newDate.month.toString().padLeft(2, '0')}-${newDate.day.toString().padLeft(2, '0')}";
+                    });
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _phoneController.dispose();
+    _dobController.dispose();
     super.dispose();
   }
 
@@ -133,6 +187,23 @@ class _RegisterPageState extends State<RegisterPage> {
                       controller: _emailController,
                       hintText: 'Email',
                       keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 10),
+                    CustomInput(
+                      controller: _phoneController,
+                      hintText: 'Phone Number (Optional)',
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 10),
+                    GestureDetector(
+                      onTap: _showDatePicker,
+                      child: AbsorbPointer(
+                        child: CustomInput(
+                          controller: _dobController,
+                          hintText: 'Date of Birth (YYYY-MM-DD)',
+                          keyboardType: TextInputType.datetime,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 10),
                     CustomInput(

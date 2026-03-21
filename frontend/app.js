@@ -75,6 +75,8 @@ function renderUsers(users) {
             <td>${user.id}</td>
             <td>${user.full_name || '-'}</td>
             <td>${user.email}</td>
+            <td>${user.phone || '-'}</td>
+            <td>${user.dob || '-'}</td>
             <td><span class="badge badge-${user.role}">${user.role}</span></td>
             <td>${user.is_active ? 'Active' : 'Inactive'}</td>
             <td>
@@ -93,6 +95,8 @@ async function handleFormSubmit(e) {
     const formData = {
         full_name: document.getElementById('full-name').value,
         email: document.getElementById('email').value,
+        phone: document.getElementById('phone').value,
+        dob: document.getElementById('dob').value ? document.getElementById('dob').value : null,
         role: document.getElementById('role').value,
         is_active: document.getElementById('is-active').checked
     };
@@ -181,6 +185,8 @@ function openModal(user = null) {
         document.getElementById('user-id').value = user.id;
         document.getElementById('full-name').value = user.full_name || '';
         document.getElementById('email').value = user.email;
+        document.getElementById('phone').value = user.phone || '';
+        document.getElementById('dob').value = user.dob || '';
         document.getElementById('role').value = user.role;
         document.getElementById('is-active').checked = user.is_active;
         document.getElementById('password-hint').style.display = 'block';

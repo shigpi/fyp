@@ -1,7 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:app/services/api_service.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final _apiService = ApiService();
+  Map<String, dynamic>? _userProfile;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await _apiService.getUserProfile();
+      if (mounted) {
+        setState(() {
+          _userProfile = profile;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load profile: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +70,11 @@ class ProfilePage extends StatelessWidget {
             const Divider(height: 1, color: Color(0xFF171717)),
 
             Expanded(
-              child: ListView(
+              child: _isLoading 
+                ? const Center(child: CircularProgressIndicator())
+                : _userProfile == null 
+                  ? const Center(child: Text('Failed to load profile data', style: TextStyle(color: Colors.white)))
+                  : ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
                   // Avatar and Basic Info
@@ -51,18 +92,18 @@ class ProfilePage extends StatelessWidget {
                           child: const Icon(Icons.person, color: Color(0xFFA3A3A3), size: 40),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'John Doe',
-                          style: TextStyle(
+                        Text(
+                          _userProfile?['full_name'] ?? 'User',
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'john.doe@email.com',
-                          style: TextStyle(
+                        Text(
+                          _userProfile?['email'] ?? '',
+                          style: const TextStyle(
                             fontSize: 14,
                             color: Color(0xFF737373),
                           ),
@@ -73,10 +114,12 @@ class ProfilePage extends StatelessWidget {
                   const SizedBox(height: 32),
 
                   // Profile Details
-                  _buildProfileItem('Full Name', 'John Doe'),
-                  _buildProfileItem('Email', 'john.doe@email.com'),
-                  _buildProfileItem('Phone', '+1 234 567 8900'),
-                  _buildProfileItem('Location', 'London, UK'),
+                  _buildProfileItem('Full Name', _userProfile?['full_name'] ?? '-'),
+                  _buildProfileItem('Email', _userProfile?['email'] ?? '-'),
+                  _buildProfileItem('Phone', _userProfile?['phone'] ?? '-'),
+                  _buildProfileItem('Date of Birth', _userProfile?['dob'] ?? '-'),
+                  if (_userProfile?['organization_id'] != null)
+                    _buildProfileItem('Organization ID', _userProfile?['organization_id'].toString() ?? '-'),
                   
                   const SizedBox(height: 32),
                   

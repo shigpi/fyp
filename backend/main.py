@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.api.routes import auth, users, admin
+from backend.api.routes import auth, users, admin, transcription, transliteration
 from backend.core.config import settings
 from backend.core.database import engine, Base
 from fastapi.staticfiles import StaticFiles
@@ -27,6 +27,8 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
+app.include_router(transcription.router, prefix="/transcribe", tags=["transcription"])
+app.include_router(transliteration.router, prefix="/transliterate", tags=["transliteration"])
 
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 

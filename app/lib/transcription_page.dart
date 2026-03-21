@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'package:app/services/api_service.dart';
+import 'package:app/services/history_service.dart';
+import 'package:app/services/recording_service.dart';
 import 'package:flutter/material.dart';
 
 class TranscriptionPage extends StatefulWidget {
-  const TranscriptionPage({super.key});
+  final String mode;
+  const TranscriptionPage({super.key, required this.mode});
 
   @override
   State<TranscriptionPage> createState() => _TranscriptionPageState();
@@ -16,6 +20,9 @@ class _TranscriptionPageState extends State<TranscriptionPage>
   int _recordingTime = 0;
   Timer? _timer;
   late AnimationController _animationController;
+  final RecordingService _recordingService = RecordingService();
+  final ApiService _apiService = ApiService();
+  final HistoryService _historyService = HistoryService();
 
   @override
   void initState() {
@@ -30,10 +37,11 @@ class _TranscriptionPageState extends State<TranscriptionPage>
   void dispose() {
     _timer?.cancel();
     _animationController.dispose();
+    _recordingService.dispose();
     super.dispose();
   }
 
-  void _toggleRecording() {
+  void _toggleRecording() async {
     if (_isRecording) {
       // Stop recording
       _timer?.cancel();
@@ -42,21 +50,64 @@ class _TranscriptionPageState extends State<TranscriptionPage>
         _isLoading = true;
       });
 
-      // Simulate processing
-      Future.delayed(const Duration(seconds: 2), () {
-        setState(() {
-          _isLoading = false;
-          _transcript =
-              "This is a mock transcript. In a real app, this would be the text generated from your speech. The quick brown fox jumps over the lazy dog. Flutter is amazing for building beautiful UIs.";
-        });
-      });
+      try {
+        final path = await _recordingService.stopRecording();
+        if (path != null) {
+          String? languageCode;
+          if (widget.mode == 'nepali') {
+            languageCode = 'ne';
+          } else if (widget.mode == 'english') {
+            languageCode = 'en';
+          }
+          
+          final transcription = await _apiService.transcribe(path, language: languageCode);
+          setState(() {
+            _transcript = transcription;
+          });
+
+          // Save to history
+          if (transcription != null && transcription.isNotEmpty) {
+            await _historyService.addHistory({
+              'date': DateTime.now().toIso8601String(),
+              'mode': widget.mode == 'nepali' ? 'Nepali' : widget.mode == 'english' ? 'English' : 'Multilingual',
+              'text': transcription,
+              'preview': transcription.length > 100 ? '${transcription.substring(0, 100)}...' : transcription,
+              'duration': _formatTime(_recordingTime),
+            });
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
     } else {
       // Start recording
+      final hasPermission = await _recordingService.checkPermission();
+      if (!hasPermission) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Microphone permission denied')),
+          );
+        }
+        return;
+      }
+
       setState(() {
         _isRecording = true;
         _transcript = null;
         _recordingTime = 0;
       });
+
+      await _recordingService.startRecording();
 
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         setState(() {
@@ -88,9 +139,13 @@ class _TranscriptionPageState extends State<TranscriptionPage>
                     child: const Icon(Icons.arrow_back, color: Color(0xFFA3A3A3), size: 20),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'Multilingual Mode',
-                    style: TextStyle(
+                  Text(
+                    widget.mode == 'nepali' 
+                      ? 'Nepali Transcription' 
+                      : widget.mode == 'english' 
+                        ? 'English Transcription' 
+                        : 'Multilingual Mode',
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,

@@ -37,7 +37,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role not in ["admin", "super_admin"]:
+    if current_user.role.value not in ["admin", "super_admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="The user doesn't have enough privileges",
@@ -45,7 +45,7 @@ def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 def get_current_super_admin(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role != "super_admin":
+    if current_user.role.value != "super_admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="The user doesn't have enough privileges",

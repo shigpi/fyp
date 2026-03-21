@@ -17,3 +17,24 @@ venv/
 # Miscelleneous
 design_ref
 to learn
+
+# ai models
+ai_models
+
+# backend debug files
+download_small.py
+dummy.wav
+reproduce_issue.py
+
+backend/debug_init.py
+backend/reset_db.py
+backend/seed_admin.py
+backend/fix_sequence.py
+backend/debug_init.py
+backend/debug_whisper.py
+
+backend/tests/test_auth.py
+backend/tests/test_org.py
+backend/tests/test_plan.py
+backend/tests/test_subscription.py
+backend/tests/test_user.py

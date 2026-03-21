@@ -6,6 +6,10 @@ from backend.core.security import get_password_hash
 from backend.models.user import User
 from backend.schemas.user import UserResponse
 from backend.schemas.admin import AdminUserCreate, AdminUserUpdate
+from backend.models.user import UserRole
+import uuid
+from backend.models.organization import Organization, OrgType
+from backend.models.org_member import OrgMember, OrgRole
 
 router = APIRouter()
 
@@ -35,11 +39,37 @@ def create_user(
         email=user_in.email,
         hashed_password=get_password_hash(user_in.password),
         full_name=user_in.full_name,
+        phone=user_in.phone,
+        dob=user_in.dob,
         role=user_in.role,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
+    
+    # Create Organization for user
+    base_name = user.full_name or "User"
+    org_slug = f"{base_name.lower().replace(' ', '-')}-{uuid.uuid4().hex[:6]}"
+    org = Organization(
+        name=base_name,
+        slug=org_slug,
+        owner_id=user.id,
+        type=OrgType.individual
+    )
+    db.add(org)
+    db.commit()
+    db.refresh(org)
+    
+    # Create OrgMember for user
+    org_member = OrgMember(
+        org_id=org.id,
+        user_id=user.id,
+        role=OrgRole.owner
+    )
+    db.add(org_member)
+    db.commit()
+    db.refresh(user)
+    
     return user
 
 @router.get("/users/{user_id}", response_model=UserResponse)

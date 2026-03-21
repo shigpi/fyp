@@ -9,6 +9,10 @@ from backend.schemas.user import UserCreate, UserLogin, Token, UserResponse
 
 router = APIRouter()
 
+import uuid
+from backend.models.organization import Organization, OrgType
+from backend.models.org_member import OrgMember, OrgRole
+
 @router.post("/register", response_model=UserResponse)
 def register(user_in: UserCreate, db: Session = Depends(deps.get_db)):
     user = db.query(User).filter(User.email == user_in.email).first()
@@ -21,10 +25,36 @@ def register(user_in: UserCreate, db: Session = Depends(deps.get_db)):
         email=user_in.email,
         hashed_password=security.get_password_hash(user_in.password),
         full_name=user_in.full_name,
+        phone=user_in.phone,
+        dob=user_in.dob,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
+    
+    # Create Organization for user
+    base_name = user.full_name or "User"
+    org_slug = f"{base_name.lower().replace(' ', '-')}-{uuid.uuid4().hex[:6]}"
+    org = Organization(
+        name=base_name,
+        slug=org_slug,
+        owner_id=user.id,
+        type=OrgType.individual
+    )
+    db.add(org)
+    db.commit()
+    db.refresh(org)
+    
+    # Create OrgMember for user
+    org_member = OrgMember(
+        org_id=org.id,
+        user_id=user.id,
+        role=OrgRole.owner
+    )
+    db.add(org_member)
+    db.commit()
+    db.refresh(user) # refresh again to load relationships
+    
     return user
 
 @router.post("/login", response_model=Token)

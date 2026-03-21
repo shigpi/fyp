@@ -35,13 +35,21 @@ client = TestClient(app)
 def test_register_user():
     response = client.post(
         "/auth/register",
-        json={"email": "test@example.com", "password": "password123", "full_name": "Test User"},
+        json={
+            "email": "test@example.com", 
+            "password": "password123", 
+            "full_name": "Test User",
+            "phone": "+1 234 567 8900",
+            "dob": "1990-01-01"
+        },
     )
     assert response.status_code == 200
     data = response.json()
     assert data["email"] == "test@example.com"
     assert "id" in data
-    assert data["subscription_tier"] == "free"
+    assert data["phone"] == "+1 234 567 8900"
+    assert data["dob"] == "1990-01-01"
+    assert data["organization_id"] is not None
 
 def test_login_user():
     response = client.post(

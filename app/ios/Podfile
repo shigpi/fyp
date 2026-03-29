@@ -45,6 +45,9 @@ post_install do |installer|
         'PERMISSION_MICROPHONE=1',
         'PERMISSION_SPEECH_RECOGNIZER=1',
       ]
+      config.build_settings['SWIFT_VERSION'] = '5.0'
+      config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
     end
   end
 end
+

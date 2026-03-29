@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organization Dashboard - VoiceScribe</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="background:#171717; padding:4px; border-radius:6px; border:1px solid #262626; vertical-align: middle; margin-right: 8px;"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                Team Org
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#" class="active" id="nav-members">Members</a></li>
+                </ul>
+            </nav>
+            <div class="user-info">
+                <span id="current-user-name">Loading...</span>
+                <span id="current-org-role" style="font-size: 0.75rem; color: var(--text-light); display: block; margin-bottom: 0.5rem;">Loading role...</span>
+                <button id="logout-btn">Logout</button>
+            </div>
+        </aside>
+        
+        <main class="main-content">
+            <div id="section-members" class="section active">
+                <header>
+                    <h1>Team Members</h1>
+                    <button id="add-member-btn" class="btn-primary">Add Member</button>
+                </header>
+                <div class="content">
+                    <div class="table-container">
+                        <table id="members-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ── Modal: Member ── -->
+    <div id="member-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" data-modal="member-modal">&times;</span>
+            <h2 id="modal-title">Add Member</h2>
+            <form id="member-form">
+                <input type="hidden" id="member-id">
+                
+                <div class="form-group" id="user-id-group">
+                    <label for="user-id">User ID to Add (Temporary UI)</label>
+                    <input type="number" id="user-id" required>
+                    <small style="color: var(--text-light);">Enter the numeric ID of the user you want to add.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="role">Role</label>
+                    <select id="role">
+                        <option value="member">Member</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn-primary">Save Member</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/organization.js"></script>
+</body>
+
+</html>

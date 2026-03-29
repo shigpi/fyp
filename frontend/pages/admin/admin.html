@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="logo">AdminPanel</div>
+            <nav>
+                <ul>
+                    <li><a href="#" class="active" id="nav-users">Users</a></li>
+                    <li><a href="#" id="nav-orgs">Organizations</a></li>
+                    <li><a href="#" id="nav-plans">Plans</a></li>
+                    <li><a href="#" id="nav-subs">Subscriptions</a></li>
+                </ul>
+            </nav>
+            <div class="user-info">
+                <span id="current-user-name">Loading...</span>
+                <button id="logout-btn">Logout</button>
+            </div>
+        </aside>
+        <main class="main-content">
+
+            <!-- ── Users Section ── -->
+            <div id="section-users" class="section active">
+                <header>
+                    <h1>User Management</h1>
+                    <button id="add-user-btn" class="btn-primary">Add User</button>
+                </header>
+                <div class="content">
+                    <div class="table-container">
+                        <table id="users-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Full Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>DOB</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Organizations Section ── -->
+            <div id="section-orgs" class="section">
+                <header>
+                    <h1>Organization Management</h1>
+                    <button id="add-org-btn" class="btn-primary">Add Organization</button>
+                </header>
+                <div class="content">
+                    <div class="table-container">
+                        <table id="orgs-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Slug</th>
+                                    <th>Owner</th>
+                                    <th>Type</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Plans Section ── -->
+            <div id="section-plans" class="section">
+                <header>
+                    <h1>Plan Management</h1>
+                    <button id="add-plan-btn" class="btn-primary">Add Plan</button>
+                </header>
+                <div class="content">
+                    <div class="table-container">
+                        <table id="plans-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Monthly Price</th>
+                                    <th>Yearly Price</th>
+                                    <th>Token Quota</th>
+                                    <th>Max Users</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Subscriptions Section ── -->
+            <div id="section-subs" class="section">
+                <header>
+                    <h1>Subscription Management</h1>
+                    <button id="add-sub-btn" class="btn-primary">Add Subscription</button>
+                </header>
+                <div class="content">
+                    <div class="table-container">
+                        <table id="subs-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Organization</th>
+                                    <th>Plan</th>
+                                    <th>Billing</th>
+                                    <th>Period Start</th>
+                                    <th>Period End</th>
+                                    <th>Cancel?</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ── Modal: User ── -->
+    <div id="user-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" data-modal="user-modal">&times;</span>
+            <h2 id="modal-title">Add User</h2>
+            <form id="user-form">
+                <input type="hidden" id="user-id">
+                <div class="form-group">
+                    <label for="full-name">Full Name</label>
+                    <input type="text" id="full-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone</label>
+                    <input type="tel" id="phone">
+                </div>
+                <div class="form-group">
+                    <label for="dob">Date of Birth</label>
+                    <input type="date" id="dob">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password">
+                    <small id="password-hint" style="display:none;">Leave blank to keep current password</small>
+                </div>
+                <div class="form-group">
+                    <label for="role">Role</label>
+                    <select id="role">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                        <option value="super_admin">Super Admin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="is-active">Active</label>
+                    <input type="checkbox" id="is-active" checked>
+                </div>
+                <button type="submit" class="btn-primary">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── Modal: Organization ── -->
+    <div id="org-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" data-modal="org-modal">&times;</span>
+            <h2 id="org-modal-title">Add Organization</h2>
+            <form id="org-form">
+                <input type="hidden" id="org-id">
+                <div class="form-group">
+                    <label for="org-name">Name</label>
+                    <input type="text" id="org-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="org-type">Type</label>
+                    <select id="org-type">
+                        <option value="individual">Individual</option>
+                        <option value="team">Team</option>
+                    </select>
+                </div>
+                <div class="form-group" id="org-owner-group">
+                    <label for="org-owner">Owner</label>
+                    <select id="org-owner" required></select>
+                </div>
+                <button type="submit" class="btn-primary">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── Modal: Plan ── -->
+    <div id="plan-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" data-modal="plan-modal">&times;</span>
+            <h2 id="plan-modal-title">Add Plan</h2>
+            <form id="plan-form">
+                <input type="hidden" id="plan-id">
+                <div class="form-group">
+                    <label for="plan-name">Name</label>
+                    <input type="text" id="plan-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="plan-price-month">Monthly Price</label>
+                    <input type="number" id="plan-price-month" step="0.01" value="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="plan-price-year">Yearly Price</label>
+                    <input type="number" id="plan-price-year" step="0.01" value="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="plan-token-quota">Token Quota</label>
+                    <input type="number" id="plan-token-quota" value="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="plan-max-users">Max Users</label>
+                    <input type="number" id="plan-max-users" value="1" required>
+                </div>
+                <button type="submit" class="btn-primary">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── Modal: Subscription ── -->
+    <div id="sub-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" data-modal="sub-modal">&times;</span>
+            <h2 id="sub-modal-title">Add Subscription</h2>
+            <form id="sub-form">
+                <input type="hidden" id="sub-id">
+                <div class="form-group" id="sub-org-group">
+                    <label for="sub-org">Organization</label>
+                    <select id="sub-org" required></select>
+                </div>
+                <div class="form-group" id="sub-plan-group">
+                    <label for="sub-plan">Plan</label>
+                    <select id="sub-plan" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="sub-type">Billing Cycle</label>
+                    <select id="sub-type">
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                    </select>
+                </div>
+                <div class="form-group" id="sub-cancel-group" style="display:none;">
+                    <label for="sub-cancel">Cancel at Period End</label>
+                    <input type="checkbox" id="sub-cancel">
+                </div>
+                <button type="submit" class="btn-primary">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>

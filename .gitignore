@@ -6,6 +6,7 @@ dist/
 wheels/
 *.egg-info
 .python-version
+.pytest_cache
 
 # Virtual environments
 .venv
@@ -38,3 +39,6 @@ backend/tests/test_org.py
 backend/tests/test_plan.py
 backend/tests/test_subscription.py
 backend/tests/test_user.py
+
+# esewa flutter sdk
+app/esewa_flutter_sdk

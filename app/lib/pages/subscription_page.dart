@@ -1,5 +1,6 @@
 import 'package:app/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
+import 'package:app/services/api_service.dart';
 
 class SubscriptionPage extends StatefulWidget {
   const SubscriptionPage({super.key});
@@ -10,6 +11,32 @@ class SubscriptionPage extends StatefulWidget {
 
 class _SubscriptionPageState extends State<SubscriptionPage> {
   String _selectedPlan = 'free';
+  List<Map<String, dynamic>>? _plans = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPlans();
+  }
+
+  Future<void> _loadPlans() async {
+    try {
+      final plans = await ApiService().getPlans();
+      setState(() {
+        _plans = plans;
+        // TODO: Set the default selected plan to the user's current plan
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load plans: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,75 +81,31 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
 
             // Plans List
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  _buildPlanCard(
-                    id: 'free',
-                    name: 'Free',
-                    price: '\$0',
-                    period: 'forever',
-                    features: [
-                      '10 minutes of transcription per month',
-                      'Basic language support',
-                      'Standard quality',
-                      'Export as text'
-                    ],
-                    color: const Color(0xFF525252),
+              child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: _plans?.length,
+                    itemBuilder: (context, index) {
+                      final plan = _plans?[index];
+                      plan?['popular'] = true;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildPlanCard(
+                          id: plan?['id']?.toString() ?? '',
+                          name: plan?['name'],
+                          price: 'NRs.${plan?['price_month']}',
+                          period: 'per month',
+                          features: ['${plan?['token_quota']} minutes/month'],
+
+                          color: plan?['popular'] == true // TODO: change color based on plan
+                              ? Colors.white
+                              : const Color(0xFF525252),
+                          isPopular: plan?['popular'] ?? false,
+                        ),
+                      );
+                    },
                   ),
-                  const SizedBox(height: 12),
-                  _buildPlanCard(
-                    id: 'premium',
-                    name: 'Premium',
-                    price: '\$9.99',
-                    period: 'per month',
-                    features: [
-                      '5 hours of transcription per month',
-                      'All languages supported',
-                      'High quality transcription',
-                      'Export as text, PDF, DOCX',
-                      'Priority processing',
-                      'Speaker identification'
-                    ],
-                    color: Colors.white,
-                    isPopular: true,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildPlanCard(
-                    id: 'ultra',
-                    name: 'Ultra',
-                    price: '\$19.99',
-                    period: 'per month',
-                    features: [
-                      'Unlimited transcription',
-                      'All languages supported',
-                      'Highest quality transcription',
-                      'All export formats',
-                      'Priority processing',
-                      'Speaker identification',
-                      'Custom vocabulary',
-                      'API access',
-                      '24/7 support'
-                    ],
-                    color: const Color(0xFF525252),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildPlanCard(
-                    id: 'student',
-                    name: 'Student',
-                    price: '\$4.99',
-                    period: 'per month',
-                    features: [
-                      '3 hours of transcription per month',
-                      'All languages supported',
-                      'High quality transcription',
-                      'Export as text, PDF',
-                      'Valid student ID required'
-                    ],
-                    color: const Color(0xFF525252),
-                  ),
-                ],
-              ),
             ),
           ],
         ),

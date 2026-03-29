@@ -1,12 +1,16 @@
 :root {
-    --primary-color: #4f46e5;
-    --primary-hover: #4338ca;
-    --bg-color: #f3f4f6;
-    --sidebar-bg: #1f2937;
-    --text-color: #111827;
-    --text-light: #9ca3af;
+    --primary-color: #ffffff;
+    --primary-hover: #e5e5e5;
+    --bg-color: #000000;
+    --sidebar-bg: #171717;
+    /* Neutral 900 */
+    --text-color: #ffffff;
+    --text-light: #a3a3a3;
+    /* Neutral 400 */
     --white: #ffffff;
-    --border-color: #e5e7eb;
+    --black: #000000;
+    --border-color: #262626;
+    /* Neutral 800 */
     --danger-color: #ef4444;
     --success-color: #10b981;
 }
@@ -61,12 +65,13 @@ body {
     display: block;
     padding: 0.75rem 1rem;
     border-radius: 0.375rem;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, color 0.2s;
 }
 
 .sidebar nav ul li a:hover,
 .sidebar nav ul li a.active {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--border-color);
+    /* Neutral 800 */
     color: var(--white);
 }
 
@@ -85,7 +90,7 @@ body {
 
 #logout-btn {
     background-color: transparent;
-    border: 1px solid var(--text-light);
+    border: 1px solid var(--border-color);
     color: var(--text-light);
     padding: 0.25rem 0.5rem;
     border-radius: 0.25rem;
@@ -120,7 +125,8 @@ h1 {
 
 .btn-primary {
     background-color: var(--primary-color);
-    color: var(--white);
+    /* White */
+    color: var(--black);
     border: none;
     padding: 0.5rem 1rem;
     border-radius: 0.375rem;
@@ -135,10 +141,12 @@ h1 {
 
 /* Table */
 .table-container {
-    background-color: var(--white);
+    background-color: var(--sidebar-bg);
+    /* Neutral 900 */
     border-radius: 0.5rem;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
     overflow: hidden;
+    border: 1px solid var(--border-color);
 }
 
 table {
@@ -154,7 +162,8 @@ td {
 }
 
 th {
-    background-color: #f9fafb;
+    background-color: #0a0a0a;
+    /* Neutral 950 */
     font-weight: 600;
     font-size: 0.75rem;
     text-transform: uppercase;
@@ -176,13 +185,15 @@ td {
 }
 
 .edit-btn {
-    background-color: #dbeafe;
-    color: #1e40af;
+    background-color: #1e3a8a;
+    /* blue-900 */
+    color: #eff6ff;
 }
 
 .delete-btn {
-    background-color: #fee2e2;
-    color: #991b1b;
+    background-color: #7f1d1d;
+    /* red-900 */
+    color: #fef2f2;
 }
 
 /* Modal */
@@ -198,14 +209,16 @@ td {
 }
 
 .modal-content {
-    background-color: var(--white);
+    background-color: var(--sidebar-bg);
+    /* Neutral 900 */
     margin: 10% auto;
     padding: 2rem;
     border-radius: 0.5rem;
     width: 100%;
     max-width: 500px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
     position: relative;
+    border: 1px solid var(--border-color);
 }
 
 .close {
@@ -224,6 +237,7 @@ td {
 
 .form-group {
     margin-bottom: 1rem;
+
 }
 
 label {
@@ -236,17 +250,96 @@ label {
 input[type="text"],
 input[type="email"],
 input[type="password"],
+input[type="tel"],
+input[type="date"],
+input[type="number"],
 select {
     width: 100%;
     padding: 0.5rem;
+    background-color: var(--sidebar-bg);
+    /* Neutral 900 */
     border: 1px solid var(--border-color);
     border-radius: 0.375rem;
     font-size: 0.875rem;
+    color: var(--white);
 }
 
 input:focus,
 select:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    border-color: var(--text-light);
+}
+
+/* Fix for date picker icon on dark bg in webkit */
+::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
+
+/* Sections */
+.section {
+    display: none;
+}
+
+.section.active {
+    display: block;
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.badge-user {
+    background-color: #312e81;
+    color: #e0e7ff;
+}
+
+/* indigo-900 / indigo-100 */
+.badge-admin {
+    background-color: #78350f;
+    color: #fef3c7;
+}
+
+/* amber-900 / amber-100 */
+.badge-super_admin {
+    background-color: #831843;
+    color: #fce7f3;
+}
+
+/* pink-900 / pink-100 */
+.badge-individual {
+    background-color: #1e3a8a;
+    color: #dbeafe;
+}
+
+/* blue-900 / blue-100 */
+.badge-team {
+    background-color: #064e3b;
+    color: #d1fae5;
+}
+
+/* emerald-900 / emerald-100 */
+.badge-monthly {
+    background-color: #4c1d95;
+    color: #ede9fe;
+}
+
+/* violet-900 / violet-100 */
+.badge-yearly {
+    background-color: #78350f;
+    color: #fef3c7;
+}
+
+/* amber-900 / amber-100 */
+
+code {
+    background-color: var(--border-color);
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--text-light);
 }

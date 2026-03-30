@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart';
 
 class ApiService {
   // Use 10.0.2.2 for Android emulator, localhost for iOS simulator
@@ -130,6 +131,32 @@ class ApiService {
       return plans.cast<Map<String, dynamic>>();
     } else {
       throw Exception('Failed to get plans: ${response.body}');
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyEsewaPayment(Map<String, dynamic> payload) async {
+    final token = await getToken();
+    final orgIdStr = await _storage.read(key: 'org_id');
+    final orgId = int.tryParse(orgIdStr ?? '0') ?? 0;
+    
+    payload['org_id'] = orgId;
+
+    debugPrint("DEBUG: payload: $payload");
+    debugPrint("DEBUG: token: $token");
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/users/subscription/esewa'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(payload),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to verify payment: ${response.body}');
     }
   }
 

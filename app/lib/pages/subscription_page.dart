@@ -1,7 +1,11 @@
 import 'package:app/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:app/services/api_service.dart';
-
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:esewa_flutter_sdk/esewa_config.dart';
+import 'package:esewa_flutter_sdk/esewa_flutter_sdk.dart';
+import 'package:esewa_flutter_sdk/esewa_payment.dart';
+import 'package:esewa_flutter_sdk/esewa_payment_success_result.dart';
 class SubscriptionPage extends StatefulWidget {
   const SubscriptionPage({super.key});
 
@@ -13,6 +17,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   String _selectedPlan = 'free';
   List<Map<String, dynamic>>? _plans = [];
   bool _loading = true;
+  bool _isYearly = false;
 
   @override
   void initState() {
@@ -35,6 +40,99 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to load plans: $e')),
       );
+    }
+  }
+
+  void _initEsewaPayment(Map<String, dynamic> plan) async {
+    final storage = FlutterSecureStorage();
+
+    // Read org_id from secure storage
+    final orgId = int.tryParse(await storage.read(key: 'org_id') ?? '');
+    if (orgId == null) {
+      debugPrint("No organization selected. Cannot proceed with payment.");
+      return;
+    }
+
+    try {
+      // Prepare price safely
+      final rawPrice = _isYearly ? plan['price_year'] : plan['price_month'];
+      final price = double.tryParse(rawPrice.toString()) ?? 0;
+
+      // Use non-numeric unique productId to satisfy eSewa SDK
+      final uniqueProductId =
+          "PLAN_${plan['id']}_${DateTime.now().millisecondsSinceEpoch}";
+
+      EsewaFlutterSdk.initPayment(
+        esewaConfig: EsewaConfig(
+          clientId:
+              'JB0BBQ4aD0UqIThFJwAKBgAXEUkEGQUBBAwdOgABHD4DChwUAB0R',
+          secretId:
+              'BhwIWQQADhIYSxILExMcAgFXFhcOBwAKBgAXEQ==',
+          environment: Environment.test, // Use production only for live
+        ),
+        esewaPayment: EsewaPayment(
+          productId: uniqueProductId,
+          productName: plan['name'].toString(),
+          productPrice: price.toInt().toString(), // Integer string required
+          callbackUrl: "https://example.com/callback", // Dummy URL for SDK interception
+        ),
+        onPaymentSuccess: (EsewaPaymentSuccessResult data) async {
+          debugPrint(":::SUCCESS::: ${data.productId}");
+          try {
+            setState(() => _loading = true);
+
+            final payload = {
+              'org_id': orgId,
+              'plan_id': int.tryParse(plan['id'].toString()) ?? 0,
+              'type': _isYearly ? 'yearly' : 'monthly',
+              'transaction_id': data.productId,
+              'product_name': data.productName,
+              'total_amount': data.totalAmount,
+              'environment': data.environment,
+              'code': data.code,
+              'merchant_name': data.merchantName,
+              'message': data.message,
+              'status': data.status,
+              'date': data.date,
+              'ref_id': data.refId,
+            };
+
+            await ApiService().verifyEsewaPayment(payload);
+
+            if (!mounted) return;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content:
+                      Text('Payment Successful! Subscription activated.')),
+            );
+
+            _loadPlans();
+          } catch (e) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Verification failed: $e')),
+            );
+            setState(() => _loading = false);
+          }
+        },
+        onPaymentFailure: (data) {
+          debugPrint(":::FAILURE::: ${data.toString()}");
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Payment Failed: ${data.message}')),
+          );
+        },
+        onPaymentCancellation: (data) {
+          debugPrint(":::CANCELLATION::: ${data.toString()}");
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Payment Cancelled.')),
+          );
+        },
+      );
+    } catch (e) {
+      debugPrint('EXCEPTION: $e');
     }
   }
 
@@ -83,28 +181,63 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
             Expanded(
               child: _loading
                 ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: _plans?.length,
-                    itemBuilder: (context, index) {
-                      final plan = _plans?[index];
-                      plan?['popular'] = true;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildPlanCard(
-                          id: plan?['id']?.toString() ?? '',
-                          name: plan?['name'],
-                          price: 'NRs.${plan?['price_month']}',
-                          period: 'per month',
-                          features: ['${plan?['token_quota']} minutes/month'],
-
-                          color: plan?['popular'] == true // TODO: change color based on plan
-                              ? Colors.white
-                              : const Color(0xFF525252),
-                          isPopular: plan?['popular'] ?? false,
+                : Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Monthly',
+                              style: TextStyle(
+                                color: !_isYearly ? Colors.white : const Color(0xFF737373),
+                                fontWeight: !_isYearly ? FontWeight.w600 : FontWeight.normal,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: _isYearly,
+                              onChanged: (val) => setState(() => _isYearly = val),
+                              activeColor: const Color(0xFF60A83A),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Yearly',
+                              style: TextStyle(
+                                color: _isYearly ? Colors.white : const Color(0xFF737373),
+                                fontWeight: _isYearly ? FontWeight.w600 : FontWeight.normal,
+                              ),
+                            ),
+                          ],
                         ),
-                      );
-                    },
+                      ),
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                          itemCount: _plans?.length,
+                          itemBuilder: (context, index) {
+                            final plan = _plans?[index];
+                            plan?['popular'] = true;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildPlanCard(
+                                id: plan?['id']?.toString() ?? '',
+                                name: plan?['name'],
+                                price: _isYearly ? 'NRs.${plan?['price_year']}' : 'NRs.${plan?['price_month']}',
+                                period: _isYearly ? 'per year' : 'per month',
+                                features: ['${plan?['token_quota']} minutes/month'],
+
+                                color: plan?['popular'] == true // TODO: change color based on plan
+                                    ? Colors.white
+                                    : const Color(0xFF525252),
+                                isPopular: plan?['popular'] ?? false,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
             ),
           ],
@@ -217,10 +350,21 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                   )),
               const SizedBox(height: 16),
               CustomButton(
-                text: isSelected ? 'Current Plan' : 'Select Plan',
-                onPressed: () => setState(() => _selectedPlan = id),
-                backgroundColor: isSelected ? Colors.white : const Color(0xFF262626),
-                textColor: isSelected ? Colors.black : Colors.white,
+                text: isSelected ? 'Pay with eSewa' : 'Select Plan',
+                onPressed: () {
+                  if (isSelected) {
+                    final selectedPlanDetails = _plans?.firstWhere(
+                        (p) => p['id'].toString() == id,
+                        orElse: () => <String, dynamic>{});
+                    if (selectedPlanDetails != null && selectedPlanDetails.isNotEmpty) {
+                      _initEsewaPayment(selectedPlanDetails);
+                    }
+                  } else {
+                    setState(() => _selectedPlan = id);
+                  }
+                },
+                backgroundColor: isSelected ? const Color(0xFF60A83A) : const Color(0xFF262626), // eSewa green color when selected
+                textColor: Colors.white,
               ),
             ],
           ),

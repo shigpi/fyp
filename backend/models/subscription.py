@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, Date, Boolean, Enum as SAEnum
+from sqlalchemy import Column, Integer, ForeignKey, Date, Boolean, Enum as SAEnum, String
 from sqlalchemy.orm import relationship
 from backend.core.database import Base
 import enum
@@ -18,6 +18,11 @@ class Subscription(Base):
     current_period_end = Column(Date, nullable=True)
     cancel_at_period_end = Column(Boolean, default=False)
     payment_provider_id = Column(Integer, nullable=True)
+
+    # eSewa Payment Tracking
+    payment_status = Column(String(50), default="pending")
+    payment_ref_id = Column(String(255), nullable=True)
+    payment_method = Column(String(50), default="esewa")
 
     # Relationships
     organization = relationship("Organization", back_populates="subscriptions")

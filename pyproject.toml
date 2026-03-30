@@ -21,6 +21,7 @@ dependencies = [
     "accelerate",
     "protobuf>=6.33.2",
     "peft>=0.18.0",
+    "httpx>=0.28.1",
 ]
 
 [dependency-groups]

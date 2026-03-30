@@ -34,3 +34,18 @@ class AdminSubscriptionUpdate(BaseModel):
     plan_id: Optional[int] = None
     type: Optional[SubscriptionType] = None
     cancel_at_period_end: Optional[bool] = None
+
+class EsewaPaymentVerify(BaseModel):
+    org_id: int
+    plan_id: int
+    type: SubscriptionType
+    product_id: str
+    product_name: str
+    total_amount: str
+    environment: str
+    code: str
+    merchant_name: str
+    message: str
+    status: str
+    date: str
+    ref_id: str

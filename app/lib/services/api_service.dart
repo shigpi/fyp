@@ -161,4 +161,62 @@ class ApiService {
   }
 
 
+  Future<bool> verifyToken() async {
+    final token = await getToken();
+    if (token == null) return false;
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getCurrentSubscription() async {
+    final token = await getToken();
+    if (token == null) return null;
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/users/me/subscription'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final body = response.body;
+      if (body == 'null' || body.isEmpty) return null;
+      return jsonDecode(body);
+    } else {
+      return null;
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    final token = await getToken();
+    if (token == null) throw Exception('Not authenticated');
+
+    final response = await http.delete(
+      Uri.parse('$baseUrl/users/me'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      await logout();
+    } else {
+      throw Exception('Failed to delete account: ${response.body}');
+    }
+  }
+
 }

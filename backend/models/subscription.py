@@ -16,7 +16,7 @@ class Subscription(Base):
     type = Column(SAEnum(SubscriptionType, name="subscription_type", create_constraint=True, native_enum=True), default=SubscriptionType.monthly)
     current_period_start = Column(Date, nullable=True)
     current_period_end = Column(Date, nullable=True)
-    cancel_at_period_end = Column(Boolean, default=False)
+    cancel_at_period_end = Column(Boolean, default=True)
     payment_provider_id = Column(Integer, nullable=True)
 
     # eSewa Payment Tracking

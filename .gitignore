@@ -41,5 +41,8 @@ backend/tests/test_plan.py
 backend/tests/test_subscription.py
 backend/tests/test_user.py
 
+# api keys
+.env
+
 # esewa flutter sdk
 app/esewa_flutter_sdk

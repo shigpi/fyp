@@ -46,6 +46,6 @@ class EsewaPaymentVerify(BaseModel):
     code: str
     merchant_name: str
     message: str
-    status: str
     date: str
+    status: str
     ref_id: str

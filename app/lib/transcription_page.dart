@@ -3,6 +3,7 @@ import 'package:app/services/api_service.dart';
 import 'package:app/services/history_service.dart';
 import 'package:app/services/recording_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class TranscriptionPage extends StatefulWidget {
   final String mode;
@@ -194,16 +195,37 @@ class _TranscriptionPageState extends State<TranscriptionPage>
     } else if (_transcript != null) {
       return Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
+         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Transcription Result',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Transcription Result',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: _transcript!));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Copied to clipboard')),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF262626),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.copy, color: Color(0xFFA3A3A3), size: 18),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -216,7 +238,7 @@ class _TranscriptionPageState extends State<TranscriptionPage>
                   border: Border.all(color: const Color(0xFF262626)),
                 ),
                 child: SingleChildScrollView(
-                  child: Text(
+                  child: SelectableText(
                     _transcript!,
                     style: const TextStyle(
                       color: Color(0xFFE5E5E5), // Neutral 200

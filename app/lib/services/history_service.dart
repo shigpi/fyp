@@ -56,4 +56,23 @@ class HistoryService {
        print('Error clearing history: $e');
      }
   }
+
+  Future<void> deleteHistoryItem(int index) async {
+    try {
+      final file = await _localFile;
+      if (!await file.exists()) return;
+
+      final contents = await file.readAsString();
+      final List<dynamic> jsonList = jsonDecode(contents);
+      final history = List<Map<String, dynamic>>.from(jsonList);
+
+      if (index < 0 || index >= history.length) return;
+
+      history.removeAt(index);
+      await file.writeAsString(jsonEncode(history));
+    } catch (e) {
+      print('Error deleting history item: $e');
+      rethrow;
+    }
+  }
 }

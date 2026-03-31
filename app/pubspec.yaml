@@ -41,6 +41,7 @@ dependencies:
   path_provider: ^2.1.2
   path: ^1.9.0
   intl: ^0.20.2
+  url_launcher: ^6.2.5
   esewa_flutter_sdk: 
     path: esewa_flutter_sdk
 

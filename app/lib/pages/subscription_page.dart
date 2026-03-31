@@ -28,9 +28,12 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   Future<void> _loadPlans() async {
     try {
       final plans = await ApiService().getPlans();
+      final currentSub = await ApiService().getCurrentSubscription();
       setState(() {
         _plans = plans;
-        // TODO: Set the default selected plan to the user's current plan
+        if (currentSub != null && currentSub['plan_id'] != null) {
+          _selectedPlan = currentSub['plan_id'].toString();
+        }
         _loading = false;
       });
     } catch (e) {
@@ -77,7 +80,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
           callbackUrl: "https://example.com/callback", // Dummy URL for SDK interception
         ),
         onPaymentSuccess: (EsewaPaymentSuccessResult data) async {
-          debugPrint(":::SUCCESS::: ${data.productId}");
+          debugPrint(":::SUCCESS::: productId=${data.productId}");
           try {
             setState(() => _loading = true);
 
@@ -85,15 +88,15 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
               'org_id': orgId,
               'plan_id': int.tryParse(plan['id'].toString()) ?? 0,
               'type': _isYearly ? 'yearly' : 'monthly',
-              'transaction_id': data.productId,
+              'product_id': data.productId,
               'product_name': data.productName,
               'total_amount': data.totalAmount,
               'environment': data.environment,
               'code': data.code,
               'merchant_name': data.merchantName,
               'message': data.message,
-              'status': data.status,
               'date': data.date,
+              'status': data.status,
               'ref_id': data.refId,
             };
 

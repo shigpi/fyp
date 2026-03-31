@@ -86,7 +86,7 @@ class TranscriptionService:
             traceback.print_exc()
             raise e
 
-    def transcribe(self, audio_path: str, language: str = None) -> str:
+    def transcribe(self, audio_path: str, language: str = None, minutes_remaining: float = 0) -> str:
         """
         Transcribe an audio file to text using manual inference loop.
         """
@@ -105,6 +105,9 @@ class TranscriptionService:
             # 2. Input Validation & Normalization
             if duration < 0.1:
                 return "[Audio too short]"
+            
+            if duration > minutes_remaining * 60:
+                return "Exceeded transcription minutes limit. Please upgrade your subscription."
                 
             # Normalize to [-1, 1] - important for consistent model performance
             max_val = np.abs(audio_data).max()

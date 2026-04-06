@@ -1,20 +1,23 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
-import backend.services.transliteration
-import os
-import uuid
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from backend.services.transliteration import TransliterationService
 
 router = APIRouter()
 
-@router.post("")
-async def transliterate(file: UploadFile = File(...)):
-    """
-    Endpoint to receive text file and return a transliterated version.
-    """
+class TransliterationRequest(BaseModel):
+    text: str
 
-    if transliteration is None:
-        raise HTTPException(status_code=503, detail="Transliteration service is not initialized")
-    
-    if not file.content_type.startswith("text/"):
-        raise HTTPException(status_code=400, detail="Invalid file type")
-        
-    return {"message": "Transliteration not implemented yet"}
+class TransliterationResponse(BaseModel):
+    transliterated_text: str
+
+@router.post("", response_model=TransliterationResponse)
+async def transliterate(request: TransliterationRequest):
+    """
+    Endpoint to receive text and return a transliterated version.
+    """
+    try:
+        service = TransliterationService.get_instance()
+        transliterated = service.transliterate(request.text)
+        return TransliterationResponse(transliterated_text=transliterated)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

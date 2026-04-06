@@ -16,16 +16,16 @@ venv/
 .DS_Store
 
 # Miscelleneous
-design_ref
-to learn
+/design_ref
+/to learn
 
 # ai models
-ai_models
+/ai_models
 
 # backend debug files
-download_small.py
-dummy.wav
-reproduce_issue.py
+/download_small.py
+/dummy.wav
+/reproduce_issue.py
 
 backend/debug_init.py
 backend/reset_db.py
@@ -34,15 +34,21 @@ backend/fix_sequence.py
 backend/debug_init.py
 backend/debug_whisper.py
 backend/migrate_esewa.py
+backend/generate_postman.py
+backend/postman_collection.json
 
-backend/tests/test_auth.py
-backend/tests/test_org.py
-backend/tests/test_plan.py
-backend/tests/test_subscription.py
-backend/tests/test_user.py
+# backend tests
+backend/tests/
 
-# api keys
+# api keys/secrets
 .env
 
 # esewa flutter sdk
 app/esewa_flutter_sdk
+
+# deployment files
+/requirements.txt
+backend/requirements.txt
+
+
+

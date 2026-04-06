@@ -115,6 +115,26 @@ class ApiService {
     }
   }
 
+  Future<String> transliterate(String text) async {
+    final token = await getToken();
+    
+    final response = await http.post(
+      Uri.parse('$baseUrl/transliterate'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'text': text}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['transliterated_text'];
+    } else {
+      throw Exception('Failed to transliterate: ${response.body}');
+    }
+  }
+
   Future<List<Map<String, dynamic>>?> getPlans() async {
     final token = await getToken();
     if (token == null) return null;

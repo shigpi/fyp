@@ -17,6 +17,7 @@ class _TranscriptionPageState extends State<TranscriptionPage>
     with SingleTickerProviderStateMixin {
   bool _isRecording = false;
   bool _isLoading = false;
+  bool _isTransliterating = false;
   String? _transcript;
   int _recordingTime = 0;
   Timer? _timer;
@@ -122,6 +123,35 @@ class _TranscriptionPageState extends State<TranscriptionPage>
     final mins = (seconds ~/ 60).toString().padLeft(2, '0');
     final secs = (seconds % 60).toString().padLeft(2, '0');
     return '$mins:$secs';
+  }
+
+  Future<void> _transliterateText() async {
+    if (_transcript == null || _transcript!.isEmpty) return;
+    
+    setState(() {
+      _isTransliterating = true;
+    });
+    
+    try {
+      final transliterated = await _apiService.transliterate(_transcript!);
+      setState(() {
+         // Displaying the transliterated text as the new transcript or appending it.
+         // Let's replace the whole text so they can see the converted nepali output easily.
+         _transcript = transliterated;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error transliterating: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTransliterating = false;
+        });
+      }
+    }
   }
 
   @override
@@ -249,7 +279,31 @@ class _TranscriptionPageState extends State<TranscriptionPage>
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+            if (widget.mode != 'english') ...[
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton(
+                  onPressed: _isTransliterating ? null : _transliterateText,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFF404040)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isTransliterating
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text('Transliterate to Nepali'),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             SizedBox(
               width: double.infinity,
               height: 48,

@@ -6,11 +6,18 @@ from backend.api.deps import get_current_user, get_db
 from sqlalchemy.orm import Session
 from datetime import date
 
-from backend.models.user import User
 from backend.models.org_member import OrgMember
+from backend.models.plan import Plan
 from backend.models.subscription import Subscription
 from backend.models.subscription_usage import SubscriptionUsage
-from backend.models.plan import Plan
+from backend.models.user import User
+
+from backend.services.transcription.exceptions import (
+    AudioTooShortError,
+    QuotaExceededError,
+    SilenceDetectedError,
+    TranscriptionError,
+)
 
 router = APIRouter()
 
@@ -30,13 +37,13 @@ async def transcribe_audio(file: UploadFile = File(...), language: str = None, c
     
     plan_id, subscription_id = subscription
 
-    minutes_used = db.query(SubscriptionUsage.minutes_used).filter(SubscriptionUsage.subscription_if == subscription_id).scaler()
-    total_minutes = db.query(Plan.token_quota).filter(Plan.id == plan_id).scaler()
+    minutes_used = db.query(SubscriptionUsage.minutes_used).filter(SubscriptionUsage.subscription_id == subscription_id).scalar() or 0
+    total_minutes = db.query(Plan.token_quota).filter(Plan.id == plan_id).scalar()
     
     if minutes_used >= total_minutes:
         raise HTTPException(status_code=403, detail="Organization has exceeded its transcription minutes limit")
 
-    minutes_remaining = total_minutes - minutes_used
+    minutes_remaining = float(total_minutes - minutes_used)
 
     if transcription_service is None:
         raise HTTPException(status_code=503, detail="Transcription service is not initialized (Model failed to load). Check backend logs.")
@@ -59,12 +66,19 @@ async def transcribe_audio(file: UploadFile = File(...), language: str = None, c
             buffer.write(content)
 
         # Transcribe
-        transcription = transcription_service.transcribe(temp_path, minutes_remaining, language=language)
-        
-        if transcription == "Exceeded transcription minutes limit. Please upgrade your subscription.":
-            raise HTTPException(status_code=403, detail=transcription)
+        transcription = transcription_service.transcribe(
+            audio_path=temp_path, 
+            language=language,
+            minutes_remaining=minutes_remaining
+        )
         
         return {"transcription": transcription}
+    except QuotaExceededError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except (AudioTooShortError, SilenceDetectedError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except TranscriptionError as e:
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
     except Exception as e:
         print(f"Error during transcription: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")

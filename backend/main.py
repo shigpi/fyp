@@ -1,47 +1,70 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
 from backend.api.routes import auth, users, admin, transcription, transliteration, docs, organizations
 from backend.core.config import settings
 from backend.core.database import engine, Base
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from backend.services.security.rate_limiter import limiter
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables
     Base.metadata.create_all(bind=engine)
     yield
 
+
 app = FastAPI(
-    title=settings.PROJECT_NAME, 
-    version=settings.PROJECT_VERSION, 
+    title=settings.PROJECT_NAME,
+    version=settings.PROJECT_VERSION,
     lifespan=lifespan,
-    docs_url=None,    # Disabled to implement custom secure docs
-    redoc_url=None
+    docs_url=None,
+    redoc_url=None,
 )
 
-# CORS
+# ── Rate limiting ─────────────────────────────────────────────────────────────
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+# ── CORS ─────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-from fastapi import Request
 
+# ── Security headers middleware ───────────────────────────────────────────────
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
+
+# ── Validation error handler ──────────────────────────────────────────────────
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    print("VALIDATION ERROR:", exc.errors())
     return JSONResponse(
         status_code=422,
         content={"detail": exc.errors()},
     )
 
+
+# ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
@@ -50,25 +73,35 @@ app.include_router(transliteration.router, prefix="/transliterate", tags=["trans
 app.include_router(docs.router, prefix="/admin", tags=["docs"])
 app.include_router(organizations.router, prefix="/organizations", tags=["organizations"])
 
+# ── Static / frontend pages ───────────────────────────────────────────────────
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
 
 @app.get("/")
 async def root_page():
     return FileResponse("frontend/index.html")
 
+
 @app.get("/login")
 async def login_page():
     return FileResponse("frontend/pages/org/login.html")
+
+
+@app.get("/register")
+async def register_page():
+    return FileResponse("frontend/pages/auth/register.html")
+
 
 @app.get("/dashboard")
 async def dashboard_page():
     return FileResponse("frontend/pages/admin/admin.html")
 
+
 @app.get("/organization")
 async def organization_page():
     return FileResponse("frontend/pages/org/organization.html")
 
+
 @app.get("/app-store")
 async def app_store_page():
     return FileResponse("frontend/pages/misc/app_store_redirect.html")
-    

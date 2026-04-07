@@ -1,13 +1,32 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:app/main.dart';
+import 'package:app/pages/login_page.dart';
+import 'api_exception.dart';
 
 class ApiService {
   // Use 10.0.2.2 for Android emulator, localhost for iOS simulator
   // static const String baseUrl = 'http://10.0.2.2:8000'; 
   static const String baseUrl = 'https://full-classic-terrier.ngrok-free.app'; 
   final _storage = const FlutterSecureStorage();
+
+  void _checkUnauthorized(int statusCode) {
+    if (statusCode == 401) {
+      logout();
+      if (navigatorKey.currentContext != null) {
+        ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+          const SnackBar(content: Text('Connection timed out. Please sign in again.')),
+        );
+      }
+      navigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+        (route) => false,
+      );
+    }
+  }
+
 
   Future<Map<String, dynamic>> register(String name, String email, String password, {String? phone, String? dob}) async {
     final response = await http.post(
@@ -25,7 +44,7 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to register: ${response.body}');
+      throw ApiException(response.statusCode, response.body);
     }
   }
 
@@ -53,7 +72,7 @@ class ApiService {
       }
       return data;
     } else {
-      throw Exception('Failed to login: ${response.body}');
+      throw ApiException(response.statusCode, response.body);
     }
   }
 
@@ -72,6 +91,7 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
+      _checkUnauthorized(response.statusCode);
       return null;
     }
   }
@@ -111,7 +131,8 @@ class ApiService {
       final data = jsonDecode(response.body);
       return data['transcription'];
     } else {
-      throw Exception('Failed to transcribe: ${response.body}');
+      _checkUnauthorized(response.statusCode);
+      throw ApiException(response.statusCode, response.body);
     }
   }
 
@@ -131,7 +152,8 @@ class ApiService {
       final data = jsonDecode(response.body);
       return data['transliterated_text'];
     } else {
-      throw Exception('Failed to transliterate: ${response.body}');
+      _checkUnauthorized(response.statusCode);
+      throw ApiException(response.statusCode, response.body);
     }
   }
 
@@ -146,11 +168,13 @@ class ApiService {
         'Authorization': 'Bearer $token',
       },
     );
-    final List<dynamic> plans = jsonDecode(response.body);
+    
     if (response.statusCode == 200) {
+      final List<dynamic> plans = jsonDecode(response.body);
       return plans.cast<Map<String, dynamic>>();
     } else {
-      throw Exception('Failed to get plans: ${response.body}');
+      _checkUnauthorized(response.statusCode);
+      throw ApiException(response.statusCode, response.body);
     }
   }
 
@@ -176,7 +200,8 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to verify payment: ${response.body}');
+      _checkUnauthorized(response.statusCode);
+      throw ApiException(response.statusCode, response.body);
     }
   }
 
@@ -216,13 +241,14 @@ class ApiService {
       if (body == 'null' || body.isEmpty) return null;
       return jsonDecode(body);
     } else {
+      _checkUnauthorized(response.statusCode);
       return null;
     }
   }
 
   Future<void> deleteAccount() async {
     final token = await getToken();
-    if (token == null) throw Exception('Not authenticated');
+    if (token == null) throw ApiException.message('Not authenticated');
 
     final response = await http.delete(
       Uri.parse('$baseUrl/users/me'),
@@ -235,7 +261,8 @@ class ApiService {
     if (response.statusCode == 200) {
       await logout();
     } else {
-      throw Exception('Failed to delete account: ${response.body}');
+      _checkUnauthorized(response.statusCode);
+      throw ApiException(response.statusCode, response.body);
     }
   }
 

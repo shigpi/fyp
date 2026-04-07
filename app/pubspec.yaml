@@ -44,6 +44,7 @@ dependencies:
   url_launcher: ^6.2.5
   esewa_flutter_sdk: 
     path: esewa_flutter_sdk
+  webview_flutter: ^4.13.1
 
 dependency_overrides:
   record_ios: 1.1.4

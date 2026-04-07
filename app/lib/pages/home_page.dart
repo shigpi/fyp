@@ -1,6 +1,7 @@
 import 'package:app/pages/history_page.dart';
 import 'package:app/transcription_page.dart';
 import 'package:app/widgets/sidebar.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -11,6 +12,58 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkPendingAudio();
+    });
+  }
+
+  Future<void> _checkPendingAudio() async {
+    final storage = const FlutterSecureStorage();
+    final pendingPath = await storage.read(key: 'pending_audio_path');
+    final pendingMode = await storage.read(key: 'pending_audio_mode') ?? 'multilingual';
+
+    if (pendingPath != null && mounted) {
+      ScaffoldMessenger.of(context).showMaterialBanner(
+        MaterialBanner(
+          content: const Text('An interrupted transcription was found. Would you like to resume?'),
+          backgroundColor: const Color(0xFF262626),
+          contentTextStyle: const TextStyle(color: Colors.white),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
+                await storage.delete(key: 'pending_audio_path');
+                await storage.delete(key: 'pending_audio_mode');
+                if (mounted) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => TranscriptionPage(
+                        mode: pendingMode,
+                        initialAudioPath: pendingPath,
+                      ),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Continue', style: TextStyle(color: Colors.blue)),
+            ),
+            TextButton(
+              onPressed: () async {
+                ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
+                await storage.delete(key: 'pending_audio_path');
+                await storage.delete(key: 'pending_audio_mode');
+              },
+              child: const Text('Cancel', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   void _startRecording(String mode) {
     Navigator.of(context).push(
       MaterialPageRoute(

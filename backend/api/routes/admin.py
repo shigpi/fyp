@@ -1,41 +1,52 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from backend.api import deps
-from backend.core.security import get_password_hash
-from backend.models.user import User
-from backend.schemas.user import UserResponse
-from backend.schemas.admin import AdminUserCreate, AdminUserUpdate
-from backend.models.user import UserRole
+
 import uuid
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.orm import Session
+
+from backend.api import deps
 from backend.models.organization import Organization, OrgType
 from backend.models.org_member import OrgMember, OrgRole
 from backend.models.plan import Plan
 from backend.models.subscription import Subscription
+from backend.models.user import User, UserRole
+from backend.schemas.admin import AdminUserCreate, AdminUserUpdate
 from backend.schemas.organization import (
-    OrganizationResponse, AdminOrganizationCreate, AdminOrganizationUpdate,
+    OrganizationResponse,
+    AdminOrganizationCreate,
+    AdminOrganizationUpdate,
 )
 from backend.schemas.plan import PlanResponse, AdminPlanCreate, AdminPlanUpdate
 from backend.schemas.subscription import (
-    SubscriptionResponse, AdminSubscriptionCreate, AdminSubscriptionUpdate,
+    SubscriptionResponse,
+    AdminSubscriptionCreate,
+    AdminSubscriptionUpdate,
 )
+from backend.schemas.user import UserResponse
+from backend.services.security import limiter, API_LIMIT
+from backend.services.security.service import security_service
 
 router = APIRouter()
 
 # ── User CRUD ──────────────────────────────────────────────
 
+
 @router.get("/users", response_model=List[UserResponse])
+@limiter.limit(API_LIMIT)
 def read_users(
+    request: Request,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin),
 ):
-    users = db.query(User).offset(skip).limit(limit).all()
-    return users
+    return db.query(User).offset(skip).limit(limit).all()
+
 
 @router.post("/users", response_model=UserResponse)
+@limiter.limit(API_LIMIT)
 def create_user(
+    request: Request,
     user_in: AdminUserCreate,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin),
@@ -48,7 +59,7 @@ def create_user(
         )
     user = User(
         email=user_in.email,
-        hashed_password=get_password_hash(user_in.password),
+        hashed_password=security_service.hash_password(user_in.password),
         full_name=user_in.full_name,
         phone=user_in.phone,
         dob=user_in.dob,
@@ -57,48 +68,45 @@ def create_user(
     db.add(user)
     db.commit()
     db.refresh(user)
-    
-    # Create Organization for user
+
     base_name = user.full_name or "User"
     org_slug = f"{base_name.lower().replace(' ', '-')}-{uuid.uuid4().hex[:6]}"
     org = Organization(
         name=base_name,
         slug=org_slug,
         owner_id=user.id,
-        type=OrgType.individual
+        type=OrgType.individual,
     )
     db.add(org)
     db.commit()
     db.refresh(org)
-    
-    # Create OrgMember for user
-    org_member = OrgMember(
-        org_id=org.id,
-        user_id=user.id,
-        role=OrgRole.owner
-    )
+
+    org_member = OrgMember(org_id=org.id, user_id=user.id, role=OrgRole.owner)
     db.add(org_member)
     db.commit()
     db.refresh(user)
-    
+
     return user
 
+
 @router.get("/users/{user_id}", response_model=UserResponse)
+@limiter.limit(API_LIMIT)
 def read_user_by_id(
+    request: Request,
     user_id: int,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin),
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="The user with this id does not exist in the system",
-        )
+        raise HTTPException(status_code=404, detail="The user with this id does not exist in the system")
     return user
 
+
 @router.put("/users/{user_id}", response_model=UserResponse)
+@limiter.limit(API_LIMIT)
 def update_user(
+    request: Request,
     user_id: int,
     user_in: AdminUserUpdate,
     db: Session = Depends(deps.get_db),
@@ -106,45 +114,43 @@ def update_user(
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="The user with this id does not exist in the system",
-        )
-    
+        raise HTTPException(status_code=404, detail="The user with this id does not exist in the system")
+
     update_data = user_in.dict(exclude_unset=True)
     if "password" in update_data:
-        hashed_password = get_password_hash(update_data["password"])
-        del update_data["password"]
-        update_data["hashed_password"] = hashed_password
-        
+        update_data["hashed_password"] = security_service.hash_password(update_data.pop("password"))
+
     for field, value in update_data.items():
         setattr(user, field, value)
-        
+
     db.add(user)
     db.commit()
     db.refresh(user)
     return user
 
+
 @router.delete("/users/{user_id}", response_model=UserResponse)
+@limiter.limit(API_LIMIT)
 def delete_user(
+    request: Request,
     user_id: int,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_super_admin),
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="The user with this id does not exist in the system",
-        )
+        raise HTTPException(status_code=404, detail="The user with this id does not exist in the system")
     db.delete(user)
     db.commit()
     return user
 
-# ── Organization CRUD ──────────────────────────────────────
+
+# ── Organisation CRUD ──────────────────────────────────────
 
 @router.get("/organizations", response_model=List[OrganizationResponse])
+@limiter.limit(API_LIMIT)
 def read_organizations(
+    request: Request,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(deps.get_db),
@@ -159,8 +165,11 @@ def read_organizations(
         results.append(data)
     return results
 
+
 @router.post("/organizations", response_model=OrganizationResponse)
+@limiter.limit(API_LIMIT)
 def create_organization(
+    request: Request,
     org_in: AdminOrganizationCreate,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin),
@@ -170,17 +179,11 @@ def create_organization(
         raise HTTPException(status_code=404, detail="Owner user not found")
 
     slug = f"{org_in.name.lower().replace(' ', '-')}-{uuid.uuid4().hex[:6]}"
-    org = Organization(
-        name=org_in.name,
-        slug=slug,
-        owner_id=org_in.owner_id,
-        type=org_in.type,
-    )
+    org = Organization(name=org_in.name, slug=slug, owner_id=org_in.owner_id, type=org_in.type)
     db.add(org)
     db.commit()
     db.refresh(org)
 
-    # Make owner an org member
     member = OrgMember(org_id=org.id, user_id=org_in.owner_id, role=OrgRole.owner)
     db.add(member)
     db.commit()
@@ -189,8 +192,11 @@ def create_organization(
     data.owner_name = owner.full_name
     return data
 
+
 @router.get("/organizations/{org_id}", response_model=OrganizationResponse)
+@limiter.limit(API_LIMIT)
 def read_organization(
+    request: Request,
     org_id: int,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin),
@@ -203,8 +209,11 @@ def read_organization(
     data.owner_name = owner.full_name if owner else None
     return data
 
+
 @router.put("/organizations/{org_id}", response_model=OrganizationResponse)
+@limiter.limit(API_LIMIT)
 def update_organization(
+    request: Request,
     org_id: int,
     org_in: AdminOrganizationUpdate,
     db: Session = Depends(deps.get_db),
@@ -214,8 +223,7 @@ def update_organization(
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    update_data = org_in.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
+    for field, value in org_in.model_dump(exclude_unset=True).items():
         setattr(org, field, value)
 
     db.add(org)
@@ -226,8 +234,11 @@ def update_organization(
     data.owner_name = owner.full_name if owner else None
     return data
 
+
 @router.delete("/organizations/{org_id}", response_model=OrganizationResponse)
+@limiter.limit(API_LIMIT)
 def delete_organization(
+    request: Request,
     org_id: int,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_super_admin),
@@ -235,7 +246,6 @@ def delete_organization(
     org = db.query(Organization).filter(Organization.id == org_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
-    # Delete members first
     db.query(OrgMember).filter(OrgMember.org_id == org_id).delete()
     data = OrganizationResponse.model_validate(org)
     owner = db.query(User).filter(User.id == org.owner_id).first()
@@ -244,17 +254,23 @@ def delete_organization(
     db.commit()
     return data
 
+
 # ── Plan CRUD ──────────────────────────────────────────────
 
 @router.get("/plans", response_model=List[PlanResponse])
+@limiter.limit(API_LIMIT)
 def read_plans(
+    request: Request,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin),
 ):
     return db.query(Plan).all()
 
+
 @router.post("/plans", response_model=PlanResponse)
+@limiter.limit(API_LIMIT)
 def create_plan(
+    request: Request,
     plan_in: AdminPlanCreate,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin),
@@ -265,8 +281,11 @@ def create_plan(
     db.refresh(plan)
     return plan
 
+
 @router.get("/plans/{plan_id}", response_model=PlanResponse)
+@limiter.limit(API_LIMIT)
 def read_plan(
+    request: Request,
     plan_id: int,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin),
@@ -276,8 +295,11 @@ def read_plan(
         raise HTTPException(status_code=404, detail="Plan not found")
     return plan
 
+
 @router.put("/plans/{plan_id}", response_model=PlanResponse)
+@limiter.limit(API_LIMIT)
 def update_plan(
+    request: Request,
     plan_id: int,
     plan_in: AdminPlanUpdate,
     db: Session = Depends(deps.get_db),
@@ -287,8 +309,7 @@ def update_plan(
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
 
-    update_data = plan_in.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
+    for field, value in plan_in.model_dump(exclude_unset=True).items():
         setattr(plan, field, value)
 
     db.add(plan)
@@ -296,8 +317,11 @@ def update_plan(
     db.refresh(plan)
     return plan
 
+
 @router.delete("/plans/{plan_id}", response_model=PlanResponse)
+@limiter.limit(API_LIMIT)
 def delete_plan(
+    request: Request,
     plan_id: int,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_super_admin),
@@ -309,10 +333,13 @@ def delete_plan(
     db.commit()
     return plan
 
+
 # ── Subscription CRUD ──────────────────────────────────────
 
 @router.get("/subscriptions", response_model=List[SubscriptionResponse])
+@limiter.limit(API_LIMIT)
 def read_subscriptions(
+    request: Request,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin),
 ):
@@ -327,8 +354,11 @@ def read_subscriptions(
         results.append(data)
     return results
 
+
 @router.post("/subscriptions", response_model=SubscriptionResponse)
+@limiter.limit(API_LIMIT)
 def create_subscription(
+    request: Request,
     sub_in: AdminSubscriptionCreate,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin),
@@ -350,8 +380,11 @@ def create_subscription(
     data.plan_name = plan.name
     return data
 
+
 @router.get("/subscriptions/{sub_id}", response_model=SubscriptionResponse)
+@limiter.limit(API_LIMIT)
 def read_subscription(
+    request: Request,
     sub_id: int,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin),
@@ -366,8 +399,11 @@ def read_subscription(
     data.plan_name = plan.name if plan else None
     return data
 
+
 @router.put("/subscriptions/{sub_id}", response_model=SubscriptionResponse)
+@limiter.limit(API_LIMIT)
 def update_subscription(
+    request: Request,
     sub_id: int,
     sub_in: AdminSubscriptionUpdate,
     db: Session = Depends(deps.get_db),
@@ -377,8 +413,7 @@ def update_subscription(
     if not sub:
         raise HTTPException(status_code=404, detail="Subscription not found")
 
-    update_data = sub_in.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
+    for field, value in sub_in.model_dump(exclude_unset=True).items():
         setattr(sub, field, value)
 
     db.add(sub)
@@ -391,8 +426,11 @@ def update_subscription(
     data.plan_name = plan.name if plan else None
     return data
 
+
 @router.delete("/subscriptions/{sub_id}", response_model=SubscriptionResponse)
+@limiter.limit(API_LIMIT)
 def delete_subscription(
+    request: Request,
     sub_id: int,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_super_admin),

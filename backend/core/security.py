@@ -1,21 +1,38 @@
-from datetime import datetime, timedelta
-from typing import Optional
-from jose import jwt
-import bcrypt
-from backend.core.config import settings
+"""
+core/security.py — DEPRECATED compatibility shim.
 
-def verify_password(plain_password, hashed_password):
-    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+All security logic has moved to services/security/service.py.
+This file exists only to prevent import errors during migration.
+Delete this file once all imports have been updated.
+"""
 
-def get_password_hash(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+import warnings
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    return encoded_jwt
+warnings.warn(
+    "Importing from 'backend.core.security' is deprecated. "
+    "Use 'backend.services.security.service.security_service' instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+from backend.services.security.service import (  # noqa: F401, E402
+    security_service,
+    get_current_user,
+    get_current_admin,
+    get_current_super_admin,
+)
+
+
+def get_password_hash(password: str) -> str:
+    return security_service.hash_password(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return security_service.verify_password(plain_password, hashed_password)
+
+
+def create_access_token(data: dict, expires_delta=None):
+    return security_service.create_access_token(
+        subject=data.get("sub", ""),
+        expires_delta=expires_delta,
+    )

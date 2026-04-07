@@ -2,12 +2,15 @@ import 'dart:async';
 import 'package:app/services/api_service.dart';
 import 'package:app/services/history_service.dart';
 import 'package:app/services/recording_service.dart';
+import 'package:app/services/api_exception.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class TranscriptionPage extends StatefulWidget {
   final String mode;
-  const TranscriptionPage({super.key, required this.mode});
+  final String? initialAudioPath;
+  const TranscriptionPage({super.key, required this.mode, this.initialAudioPath});
 
   @override
   State<TranscriptionPage> createState() => _TranscriptionPageState();
@@ -33,6 +36,63 @@ class _TranscriptionPageState extends State<TranscriptionPage>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
+
+    if (widget.initialAudioPath != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _runTranscription(widget.initialAudioPath!);
+      });
+    }
+  }
+
+  Future<void> _runTranscription(String path) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      String? languageCode;
+      if (widget.mode == 'nepali') {
+        languageCode = 'ne';
+      } else if (widget.mode == 'english') {
+        languageCode = 'en';
+      }
+      
+      final transcription = await _apiService.transcribe(path, language: languageCode);
+      
+      if (mounted) {
+        setState(() {
+          _transcript = transcription;
+        });
+      }
+
+      if (transcription != null && transcription.isNotEmpty) {
+        await _historyService.addHistory({
+          'date': DateTime.now().toIso8601String(),
+          'mode': widget.mode == 'nepali' ? 'Nepali' : widget.mode == 'english' ? 'English' : 'Multilingual',
+          'text': transcription,
+          'preview': transcription.length > 100 ? '${transcription.substring(0, 100)}...' : transcription,
+          'duration': _formatTime(_recordingTime),
+        });
+      }
+    } catch (e) {
+      if (e is ApiException && e.statusCode == 401) {
+        final storage = const FlutterSecureStorage();
+        await storage.write(key: 'pending_audio_path', value: path);
+        await storage.write(key: 'pending_audio_mode', value: widget.mode);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -49,46 +109,18 @@ class _TranscriptionPageState extends State<TranscriptionPage>
       _timer?.cancel();
       setState(() {
         _isRecording = false;
-        _isLoading = true;
       });
 
       try {
         final path = await _recordingService.stopRecording();
         if (path != null) {
-          String? languageCode;
-          if (widget.mode == 'nepali') {
-            languageCode = 'ne';
-          } else if (widget.mode == 'english') {
-            languageCode = 'en';
-          }
-          
-          final transcription = await _apiService.transcribe(path, language: languageCode);
-          setState(() {
-            _transcript = transcription;
-          });
-
-          // Save to history
-          if (transcription != null && transcription.isNotEmpty) {
-            await _historyService.addHistory({
-              'date': DateTime.now().toIso8601String(),
-              'mode': widget.mode == 'nepali' ? 'Nepali' : widget.mode == 'english' ? 'English' : 'Multilingual',
-              'text': transcription,
-              'preview': transcription.length > 100 ? '${transcription.substring(0, 100)}...' : transcription,
-              'duration': _formatTime(_recordingTime),
-            });
-          }
+          await _runTranscription(path);
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error: $e')),
           );
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
         }
       }
     } else {

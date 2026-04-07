@@ -1,11 +1,14 @@
 import 'package:app/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:app/services/api_service.dart';
+import 'package:app/services/subscription_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:esewa_flutter_sdk/esewa_config.dart';
 import 'package:esewa_flutter_sdk/esewa_flutter_sdk.dart';
 import 'package:esewa_flutter_sdk/esewa_payment.dart';
 import 'package:esewa_flutter_sdk/esewa_payment_success_result.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 class SubscriptionPage extends StatefulWidget {
   const SubscriptionPage({super.key});
 
@@ -14,10 +17,14 @@ class SubscriptionPage extends StatefulWidget {
 }
 
 class _SubscriptionPageState extends State<SubscriptionPage> {
-  String _selectedPlan = 'free';
-  List<Map<String, dynamic>>? _plans = [];
+  String? _selectedPlan = 'free';
+  List<Map<String, dynamic>> _plans = [];
+  Map<String, dynamic>? _activeSubscription;
+  bool _emailVerified = false;
+  int? _mostPopularPlanId;
   bool _loading = true;
   bool _isYearly = false;
+  final SubscriptionService _subService = SubscriptionService();
 
   @override
   void initState() {
@@ -27,16 +34,24 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
 
   Future<void> _loadPlans() async {
     try {
-      final plans = await ApiService().getPlans();
-      final currentSub = await ApiService().getCurrentSubscription();
+      final state = await _subService.loadSubscriptionData();
+
       setState(() {
-        _plans = plans;
-        if (currentSub != null && currentSub['plan_id'] != null) {
-          _selectedPlan = currentSub['plan_id'].toString();
+        _plans = state.plans;
+        _activeSubscription = state.activeSubscription;
+        _emailVerified = state.emailVerified;
+        _mostPopularPlanId = state.mostPopularPlanId;
+        
+        if (_activeSubscription != null && _activeSubscription!['status'] == 'active') {
+          _selectedPlan = _activeSubscription!['plan_id']?.toString();
+        } else {
+          _selectedPlan = null;
         }
+        
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _loading = false;
       });
@@ -47,7 +62,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   }
 
   void _initEsewaPayment(Map<String, dynamic> plan) async {
-    final storage = FlutterSecureStorage();
+    final storage = const FlutterSecureStorage();
 
     // Read org_id from secure storage
     final orgId = int.tryParse(await storage.read(key: 'org_id') ?? '');
@@ -180,6 +195,46 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
             ),
             const Divider(height: 1, color: Color(0xFF171717)),
 
+            if (!_loading && !_emailVerified)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                color: const Color(0xFFB1430F), // Muted dark orange banner
+                child: Column(
+                  children: [
+                    const Text(
+                      'Verify your email to subscribe.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    CustomButton(
+                      text: 'Verify Email',
+                      backgroundColor: Colors.white,
+                      textColor: Colors.black,
+                      onPressed: () async {
+                        try {
+                          await ApiService().resendVerificationEmail();
+                          final Uri url = Uri.parse('${ApiService.baseUrl}/verify-otp');
+                          if (!await launchUrl(url, mode: LaunchMode.inAppWebView)) {
+                            debugPrint('Could not launch $url');
+                          }
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to send verification: $e')),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
             // Plans List
             Expanded(
               child: _loading
@@ -218,23 +273,22 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                       Expanded(
                         child: ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                          itemCount: _plans?.length,
+                          itemCount: _plans.length,
                           itemBuilder: (context, index) {
-                            final plan = _plans?[index];
-                            plan?['popular'] = true;
+                            final plan = _plans[index];
+                            final planId = plan['id']?.toString() ?? '';
+                            final planIdInt = int.tryParse(planId);
+                            final isPopular = planIdInt != null && _mostPopularPlanId == planIdInt;
+                            
                             return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.only(bottom: 24),
                               child: _buildPlanCard(
-                                id: plan?['id']?.toString() ?? '',
-                                name: plan?['name'],
-                                price: _isYearly ? 'NRs.${plan?['price_year']}' : 'NRs.${plan?['price_month']}',
+                                id: planId,
+                                name: plan['name'],
+                                price: _isYearly ? 'NRs.${plan['price_year']}' : 'NRs.${plan['price_month']}',
                                 period: _isYearly ? 'per year' : 'per month',
-                                features: ['${plan?['token_quota']} minutes/month'],
-
-                                color: plan?['popular'] == true // TODO: change color based on plan
-                                    ? Colors.white
-                                    : const Color(0xFF525252),
-                                isPopular: plan?['popular'] ?? false,
+                                features: ['${plan['token_quota']} minutes/month'],
+                                isPopular: isPopular,
                               ),
                             );
                           },
@@ -255,10 +309,97 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     required String price,
     required String period,
     required List<String> features,
-    required Color color,
     bool isPopular = false,
   }) {
+    final intPlanId = int.tryParse(id);
+    final hasActiveSub = _activeSubscription != null && _activeSubscription!['status'] == 'active';
+    final isActivePlan = hasActiveSub && _activeSubscription!['plan_id'] == intPlanId;
     final isSelected = _selectedPlan == id;
+    final canSubscribe = _emailVerified && !hasActiveSub;
+
+    // Determine border color
+    Color borderColor = const Color(0xFF262626);
+    if (isActivePlan) {
+      borderColor = const Color(0xFF60A83A); // Green for active
+    } else if (isSelected) {
+      borderColor = Colors.white; // White for currently selecting but not paid
+    }
+
+    // Determine button text and state
+    String btnText;
+    if (isActivePlan) {
+      btnText = 'Current Plan';
+    } else if (isSelected) {
+      btnText = 'Pay with eSewa';
+    } else {
+      btnText = 'Select Plan';
+    }
+
+    VoidCallback? onPressed;
+    if (isActivePlan) {
+      onPressed = null;
+    } else if (!hasActiveSub) {
+      if (_emailVerified) {
+        onPressed = () {
+          if (isSelected) {
+            final selectedPlanDetails = _plans.firstWhere(
+                (p) => p['id'].toString() == id,
+                orElse: () => <String, dynamic>{});
+            if (selectedPlanDetails.isNotEmpty) {
+              _initEsewaPayment(selectedPlanDetails);
+            }
+          } else {
+            setState(() => _selectedPlan = id);
+          }
+        };
+      } else {
+        onPressed = null; // Disabled if email not verified
+      }
+    } else {
+      onPressed = null; // Disabled if they have an active sub on a different plan
+    }
+
+    // Prepare badges
+    final badges = <Widget>[];
+    if (isActivePlan) {
+      badges.add(
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xFF60A83A),
+            borderRadius: BorderRadius.circular(100),
+          ),
+          child: const Text(
+            'Current Plan',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      );
+    }
+    if (isPopular) {
+      if (badges.isNotEmpty) badges.add(const SizedBox(width: 8));
+      badges.add(
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(100),
+          ),
+          child: const Text(
+            'Most Popular',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -266,33 +407,22 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
         color: const Color(0xFF171717), // Neutral 900
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isSelected ? color : const Color(0xFF262626),
-          width: isSelected ? 2 : 1,
+          color: borderColor,
+          width: isActivePlan || isSelected ? 2 : 1,
         ),
       ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          if (isPopular)
+          if (badges.isNotEmpty)
             Positioned(
               top: -26,
               left: 0,
               right: 0,
               child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: const Text(
-                    'Most Popular',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: badges,
                 ),
               ),
             ),
@@ -353,20 +483,9 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                   )),
               const SizedBox(height: 16),
               CustomButton(
-                text: isSelected ? 'Pay with eSewa' : 'Select Plan',
-                onPressed: () {
-                  if (isSelected) {
-                    final selectedPlanDetails = _plans?.firstWhere(
-                        (p) => p['id'].toString() == id,
-                        orElse: () => <String, dynamic>{});
-                    if (selectedPlanDetails != null && selectedPlanDetails.isNotEmpty) {
-                      _initEsewaPayment(selectedPlanDetails);
-                    }
-                  } else {
-                    setState(() => _selectedPlan = id);
-                  }
-                },
-                backgroundColor: isSelected ? const Color(0xFF60A83A) : const Color(0xFF262626), // eSewa green color when selected
+                text: btnText,
+                onPressed: onPressed,
+                backgroundColor: isSelected && canSubscribe ? const Color(0xFF60A83A) : const Color(0xFF262626), 
                 textColor: Colors.white,
               ),
             ],

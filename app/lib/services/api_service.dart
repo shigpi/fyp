@@ -266,4 +266,42 @@ class ApiService {
     }
   }
 
+  Future<int?> getMostPopularPlanId() async {
+    final token = await getToken();
+    if (token == null) return null;
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/users/plans/most-popular'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+      return body['plan_id'] as int?;
+    } else {
+      _checkUnauthorized(response.statusCode);
+      return null;
+    }
+  }
+
+  Future<void> resendVerificationEmail() async {
+    final token = await getToken();
+    if (token == null) return;
+    
+    try {
+      await http.post(
+        Uri.parse('$baseUrl/auth/send-email-verification'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+    } catch (_) {
+      // Background request, ignore errors
+    }
+  }
+
 }

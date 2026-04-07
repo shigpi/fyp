@@ -88,11 +88,18 @@ async def transcribe_audio(
             content = await file.read()
             buffer.write(content)
 
-        transcription = transcription_service.transcribe(
+        transcription, duration_seconds = transcription_service.transcribe(
             audio_path=temp_path,
             language=language,
             minutes_remaining=minutes_remaining,
         )
+
+        # Update Subscription Usage
+        usage = db.query(SubscriptionUsage).filter(SubscriptionUsage.subscription_id == subscription_id).first()
+        if usage:
+            usage.minutes_used = float(usage.minutes_used or 0) + float(duration_seconds / 60.0)
+            db.commit()
+
         return {"transcription": transcription}
 
     except QuotaExceededError as e:

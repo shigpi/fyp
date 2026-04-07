@@ -45,7 +45,7 @@ class EmailVerificationService:
             "exp": expire,
         }
         
-        token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        token = jwt.encode(payload, settings.JWT_PRIVATE_KEY, algorithm=settings.ALGORITHM)
         return otp, token
 
     async def send_otp_email(self, email: str, otp: str):
@@ -75,7 +75,7 @@ class EmailVerificationService:
         try:
             payload = jwt.decode(
                 token,
-                settings.SECRET_KEY,
+                settings.JWT_PUBLIC_KEY,
                 algorithms=[settings.ALGORITHM]
             )
             

@@ -25,7 +25,7 @@ app = FastAPI(
     version=settings.PROJECT_VERSION,
     lifespan=lifespan,
     docs_url=None,
-    redoc_url=None,
+    redoc_url=None
 )
 
 # ── Rate limiting ─────────────────────────────────────────────────────────────

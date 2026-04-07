@@ -1,5 +1,6 @@
 from typing import List
 from datetime import date, timedelta
+from sqlalchemy import func
 
 import os
 import httpx
@@ -43,12 +44,17 @@ def get_my_subscription(
 
     plan = db.query(Plan).filter(Plan.id == subscription.plan_id).first()
 
+    plan = db.query(Plan).filter(Plan.id == subscription.plan_id).first()
+
+    status = "active" if subscription.current_period_end and subscription.current_period_end >= date.today() else "expired"
+
     return {
         "plan_id": subscription.plan_id,
         "plan_name": plan.name if plan else None,
         "type": subscription.type.value if subscription.type else None,
         "payment_status": subscription.payment_status,
         "current_period_end": str(subscription.current_period_end) if subscription.current_period_end else None,
+        "status": status,
     }
 
 
@@ -122,6 +128,24 @@ def read_plans(
     return db.query(Plan).all()
 
 
+@router.get("/plans/most-popular")
+@limiter.limit(API_LIMIT)
+def read_most_popular_plan(
+    request: Request,
+    db: Session = Depends(deps.get_db),
+):
+    # Calculate most popular by counting active subscriptions
+    popular_plan = db.query(Subscription.plan_id, func.count(Subscription.id).label('count')) \
+        .filter(Subscription.current_period_end >= date.today()) \
+        .group_by(Subscription.plan_id) \
+        .order_by(func.count(Subscription.id).desc()) \
+        .first()
+    
+    if popular_plan:
+        return {"plan_id": popular_plan.plan_id}
+    return {"plan_id": None}
+
+
 @router.post("/subscription/esewa")
 @limiter.limit(API_LIMIT)
 def verify_esewa_payment(
@@ -162,7 +186,19 @@ def verify_esewa_payment(
             detail="User does not belong to the specified organization",
         )
 
-    # 2. Server-to-server eSewa V2 verification
+    # 4. Prevent duplicate subscriptions
+    active_subscription = db.query(Subscription).filter(
+        Subscription.org_id == payment_data.org_id,
+        Subscription.current_period_end >= date.today(),
+        Subscription.payment_status == 'completed'
+    ).first()
+    if active_subscription:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You already have an active subscription"
+        )
+
+    # 5. Server-to-server eSewa V2 verification
     esewa_verify_url = "https://rc.esewa.com.np/mobile/transaction"
     verify_params = {
         "productId": payment_data.product_id,
@@ -220,6 +256,7 @@ def verify_esewa_payment(
         subscription.payment_ref_id = payment_data.ref_id
         subscription.payment_method = "esewa"
         subscription.payment_provider_id = None
+        subscription.cancel_at_period_end = True
     else:
         subscription = Subscription(
             org_id=payment_data.org_id,
@@ -230,6 +267,7 @@ def verify_esewa_payment(
             payment_status="completed",
             payment_ref_id=payment_data.ref_id,
             payment_method="esewa",
+            cancel_at_period_end=True,
         )
         db.add(subscription)
 

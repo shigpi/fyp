@@ -114,7 +114,7 @@ class SecurityService:
         if extra_claims:
             payload.update(extra_claims)
 
-        return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        return jwt.encode(payload, settings.JWT_PRIVATE_KEY, algorithm=settings.ALGORITHM)
 
     def decode_token(self, token: str) -> dict:
         """
@@ -132,7 +132,7 @@ class SecurityService:
         try:
             payload = jwt.decode(
                 token,
-                settings.SECRET_KEY,
+                settings.JWT_PUBLIC_KEY,
                 algorithms=[settings.ALGORITHM],
             )
             email: str = payload.get("sub")

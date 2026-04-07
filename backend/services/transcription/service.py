@@ -34,7 +34,7 @@ class TranscriptionService:
         audio_path: str,
         language: str | None = None,
         minutes_remaining: float = 0,
-    ) -> str:
+    ) -> tuple[str, float]:
         """
         Transcribe an audio file to text using manual inference loop.
 
@@ -44,7 +44,7 @@ class TranscriptionService:
             minutes_remaining: Remaining quota limit (0 for unlimited).
 
         Returns:
-            The transcribed text.
+            Tuple of (transcribed_text, duration_seconds).
         """
         logger.info(
             "Transcribing audio file: %s (Language: %s, Quota: %.1f mins)",
@@ -120,10 +120,10 @@ class TranscriptionService:
 
             if not final_text:
                 logger.warning("Generation yielded empty string — no speech detected in any chunks.")
-                return "[No speech detected]"
+                return "[No speech detected]", duration
 
             logger.info("Transcription completed successfully.")
-            return final_text
+            return final_text, duration
 
         except Exception as e:
             logger.error("Inference error: %s", e)
@@ -132,4 +132,4 @@ class TranscriptionService:
             from .exceptions import TranscriptionError
             if isinstance(e, TranscriptionError):
                 raise e
-            return f"[Transcription error: {str(e)}]"
+            return f"[Transcription error: {str(e)}]", 0.0

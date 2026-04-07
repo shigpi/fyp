@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool isOutline;
   final Color? backgroundColor;
   final Color? textColor;
@@ -22,6 +22,7 @@ class CustomButton extends StatelessWidget {
       width: double.infinity,
       height: 48,
       child: ElevatedButton(
+        // Allow disabled state when onPressed is null
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: isOutline
@@ -34,6 +35,8 @@ class CustomButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
+          disabledBackgroundColor: const Color(0xFF333333),
+          disabledForegroundColor: const Color(0xFF737373),
         ),
         child: Text(
           text,

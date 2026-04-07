@@ -16,15 +16,27 @@ class Settings:
         f"@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
     )
 
-    # ── JWT ───────────────────────────────────────────────────────────────
-    SECRET_KEY: str = os.getenv(
-        "SECRET_KEY",
-        "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7",
-    )
-    ALGORITHM: str = "HS256"
+    # ── JWT (RS256) ────────────────────────────────────────────────────────
+    JWT_PRIVATE_KEY_B64: str = os.getenv("JWT_PRIVATE_KEY_B64", "")
+    JWT_PUBLIC_KEY_B64: str = os.getenv("JWT_PUBLIC_KEY_B64", "")
+    ALGORITHM: str = os.getenv("JWT_ALGORITHM", "RS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
         os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
     )
+
+    @property
+    def JWT_PRIVATE_KEY(self) -> str:
+        import base64
+        if not self.JWT_PRIVATE_KEY_B64:
+            raise RuntimeError("JWT_PRIVATE_KEY_B64 must be set in environment variables.")
+        return base64.b64decode(self.JWT_PRIVATE_KEY_B64).decode("utf-8")
+
+    @property
+    def JWT_PUBLIC_KEY(self) -> str:
+        import base64
+        if not self.JWT_PUBLIC_KEY_B64:
+            raise RuntimeError("JWT_PUBLIC_KEY_B64 must be set in environment variables.")
+        return base64.b64decode(self.JWT_PUBLIC_KEY_B64).decode("utf-8")
 
     # ── CORS ──────────────────────────────────────────────────────────────
     # Comma-separated list of allowed origins.

@@ -1,7 +1,10 @@
 from typing import Optional
 from datetime import datetime
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
+import logging
+
+logger = logging.getLogger(__name__)
 from backend.models.organization import OrgType
 from backend.models.org_member import OrgRole
 from backend.services.security.sanitization import sanitize_string
@@ -25,10 +28,19 @@ class OrganizationCreate(OrganizationBase):
 class OrganizationResponse(OrganizationBase):
     id: int
     slug: str
-    owner_id: int
+    owner_id: Optional[int] = None
     created_at: datetime
     type: OrgType
     owner_name: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def log_missing_fields(cls, data):
+        owner_id = getattr(data, 'owner_id', None) if not isinstance(data, dict) else data.get('owner_id')
+        if owner_id is None:
+            obj_id = getattr(data, 'id', 'unknown') if not isinstance(data, dict) else data.get('id', 'unknown')
+            logger.error(f"OrganizationResponse: Organization ID {obj_id} has a null or missing owner_id")
+        return data
 
     class Config:
         from_attributes = True
@@ -65,9 +77,32 @@ class OrgMemberBase(BaseModel):
 
 class OrgMemberResponse(OrgMemberBase):
     id: int
-    org_id: int
-    user_id: int
+    org_id: Optional[int] = None
+    user_id: Optional[int] = None
     joined_at: datetime
+    org_name: Optional[str] = None
+    user_name: Optional[str] = None
+    user_email: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def log_missing_fields(cls, data):
+        org_id = getattr(data, 'org_id', None) if not isinstance(data, dict) else data.get('org_id')
+        user_id = getattr(data, 'user_id', None) if not isinstance(data, dict) else data.get('user_id')
+        if org_id is None or user_id is None:
+            obj_id = getattr(data, 'id', 'unknown') if not isinstance(data, dict) else data.get('id', 'unknown')
+            logger.error(f"OrgMemberResponse: OrgMember ID {obj_id} has null org_id or user_id")
+        return data
 
     class Config:
         from_attributes = True
+
+
+class AdminOrgMemberCreate(BaseModel):
+    org_id: int
+    user_id: int
+    role: OrgRole = OrgRole.member
+
+
+class AdminOrgMemberUpdate(BaseModel):
+    role: Optional[OrgRole] = None

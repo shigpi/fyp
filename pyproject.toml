@@ -25,6 +25,7 @@ dependencies = [
     "mangum>=0.21.0",
     "slowapi>=0.1.9",
     "bleach>=6.0.0",
+    "fastapi-mail>=1.6.2",
 ]
 
 [dependency-groups]

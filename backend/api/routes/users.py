@@ -130,7 +130,28 @@ def verify_esewa_payment(
     current_user: User = Depends(deps.get_current_user),
     db: Session = Depends(deps.get_db),
 ):
-    # 1. Verify user's membership in the organisation
+    # 1. Verify user's email is verified
+    if not current_user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified. Please verify your email before subscribing.",
+        )
+
+    # 2. Verify organization exists and user is the owner
+    org = db.query(Organization).filter(Organization.id == payment_data.org_id).first()
+    if not org:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found",
+        )
+    
+    if org.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organization owner can subscribe",
+        )
+
+    # 3. Verify user's membership in the organisation (extra safety)
     membership = db.query(OrgMember).filter(
         OrgMember.user_id == current_user.id,
         OrgMember.org_id == payment_data.org_id,

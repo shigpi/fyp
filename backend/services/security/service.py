@@ -34,7 +34,6 @@ from sqlalchemy.orm import Session
 from backend.core.config import settings
 from backend.core.database import SessionLocal
 from backend.models.user import User, UserRole
-from backend.schemas.user import TokenData
 
 
 # ---------------------------------------------------------------------------
@@ -164,9 +163,8 @@ class SecurityService:
         """
         payload = self.decode_token(token)
         email: str = payload.get("sub")
-        token_data = TokenData(email=email)
 
-        user = db.query(User).filter(User.email == token_data.email).first()
+        user = db.query(User).filter(User.email == email).first()
         if user is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

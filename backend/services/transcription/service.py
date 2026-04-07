@@ -59,17 +59,11 @@ class TranscriptionService:
                 audio_path, minutes_remaining
             )
 
-            # 2. Feature Extraction
-            inputs = self.processor(
-                audio_data, sampling_rate=16000, return_tensors="pt"
-            )
+            # 2. Segment Audio
+            chunks = audio.chunk_audio(audio_data)
+            logger.info("Split audio into %d chunks for processing.", len(chunks))
 
-            # 3. Move to Device
-            input_features = inputs.input_features.to(
-                device=self.device, dtype=self.torch_dtype
-            )
-
-            # 4. Prepare Generation Args
+            # 3. Prepare Generation Args
             gen_kwargs = {
                 "max_new_tokens": 440,
                 "return_timestamps": False,
@@ -91,20 +85,45 @@ class TranscriptionService:
 
             logger.debug("Generating with args: %s", gen_kwargs)
 
-            # 5. Generate and Decode
-            with torch.no_grad():
-                predicted_ids = self.model.generate(input_features, **gen_kwargs)
+            full_transcription = []
 
-            text = self.processor.batch_decode(predicted_ids, skip_special_tokens=True)[
-                0
-            ].strip()
+            # 4. Process Each Chunk
+            for i, chunk in enumerate(chunks):
+                if len(chunk) < 16_000 * 0.1:  # Skip chunks smaller than 0.1s
+                    continue
+                    
+                # Feature Extraction
+                inputs = self.processor(
+                    chunk, sampling_rate=16000, return_tensors="pt"
+                )
 
-            if not text:
-                logger.warning("Generation yielded empty string — no speech detected.")
+                # Move to Device
+                input_features = inputs.input_features.to(
+                    device=self.device, dtype=self.torch_dtype
+                )
+
+                # Generate and Decode
+                with torch.no_grad():
+                    predicted_ids = self.model.generate(input_features, **gen_kwargs)
+
+                chunk_text = self.processor.batch_decode(predicted_ids, skip_special_tokens=True)[
+                    0
+                ].strip()
+
+                if chunk_text:
+                    full_transcription.append(chunk_text)
+                    logger.debug("Transcription for chunk %d: %s", i + 1, chunk_text)
+                else:
+                    logger.debug("Generation for chunk %d yielded empty string.", i + 1)
+
+            final_text = " ".join(full_transcription).strip()
+
+            if not final_text:
+                logger.warning("Generation yielded empty string — no speech detected in any chunks.")
                 return "[No speech detected]"
 
             logger.info("Transcription completed successfully.")
-            return text
+            return final_text
 
         except Exception as e:
             logger.error("Inference error: %s", e)

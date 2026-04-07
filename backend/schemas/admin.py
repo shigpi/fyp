@@ -13,6 +13,7 @@ from backend.services.security.sanitization import (
 class AdminUserCreate(UserBase):
     password: str
     role: UserRole = UserRole.user
+    email_verified: bool = False
 
     @field_validator("password", mode="before")
     @classmethod
@@ -28,6 +29,7 @@ class AdminUserUpdate(BaseModel):
     password: Optional[str] = None
     is_active: Optional[bool] = None
     role: Optional[UserRole] = None
+    email_verified: Optional[bool] = None
 
     @field_validator("full_name", mode="before")
     @classmethod

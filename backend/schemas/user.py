@@ -52,16 +52,23 @@ class UserLogin(BaseModel):
         return sanitize_email(v) if v else v
 
 
-class UserResponse(UserBase):
+class UserResponse(BaseModel):
+    """
+    Output schema — inherits directly from BaseModel (NOT UserBase) so that
+    input-only sanitization validators don't run during response serialization.
+    """
     id: int
+    email: str
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    dob: Optional[date] = None
     is_active: bool
+    email_verified: bool = False
     subscription_tier: str
     role: UserRole
     organization_id: Optional[int] = None
 
-    class Config:
-        orm_mode = True
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class Token(BaseModel):
@@ -72,3 +79,12 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: Optional[str] = None
+
+
+class EmailVerificationRequest(BaseModel):
+    email: Optional[EmailStr] = None
+
+
+class EmailVerificationVerify(BaseModel):
+    token: str
+    otp: str

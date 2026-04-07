@@ -64,3 +64,41 @@ def load_and_validate(
         raise SilenceDetectedError(max_val)
 
     return audio_data, duration
+
+
+def chunk_audio(
+    audio_data: np.ndarray,
+    chunk_length_s: float = 30.0,
+    overlap_s: float = 2.0,
+    sr: int = _TARGET_SAMPLE_RATE,
+) -> list[np.ndarray]:
+    """
+    Split audio data into sequential chunks with overlap to prevent word cutoff.
+    
+    Args:
+        audio_data: The loaded audio numpy array.
+        chunk_length_s: Length of each chunk in seconds.
+        overlap_s: Overlap between consecutive chunks in seconds.
+        sr: Sample rate of the audio data.
+        
+    Returns:
+        List of numpy arrays representing the audio chunks.
+    """
+    chunk_samples = int(chunk_length_s * sr)
+    overlap_samples = int(overlap_s * sr)
+    stride = chunk_samples - overlap_samples
+    
+    chunks = []
+    total_samples = len(audio_data)
+    
+    if total_samples <= chunk_samples:
+        return [audio_data]
+        
+    for start_idx in range(0, total_samples, stride):
+        end_idx = min(start_idx + chunk_samples, total_samples)
+        chunks.append(audio_data[start_idx:end_idx])
+        
+        if end_idx == total_samples:
+            break
+            
+    return chunks

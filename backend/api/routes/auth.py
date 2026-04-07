@@ -1,7 +1,6 @@
 from datetime import timedelta
-
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from backend.api import deps
@@ -9,16 +8,22 @@ from backend.core.config import settings
 from backend.models.organization import Organization, OrgType
 from backend.models.org_member import OrgMember, OrgRole
 from backend.models.user import User
-from backend.schemas.user import UserCreate, UserLogin, Token, UserResponse
+from backend.schemas.user import UserCreate, UserLogin, Token, UserResponse, EmailVerificationRequest, EmailVerificationVerify
 from backend.services.security import limiter, AUTH_LIMIT
 from backend.services.security.service import security_service
+from backend.services.email_verification import email_verification_service
 
 router = APIRouter()
 
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/register")
 @limiter.limit(AUTH_LIMIT)
-def register(request: Request, user_in: UserCreate, db: Session = Depends(deps.get_db)):
+def register(
+    request: Request,
+    user_in: UserCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(deps.get_db)
+):
     user = db.query(User).filter(User.email == user_in.email).first()
     if user:
         raise HTTPException(
@@ -54,7 +59,20 @@ def register(request: Request, user_in: UserCreate, db: Session = Depends(deps.g
     db.commit()
     db.refresh(user)
 
-    return user
+    # ── Email Verification Trigger ───────────────────────────────────────────
+    otp, verification_token = email_verification_service.create_email_otp_token(user.email)
+    
+    background_tasks.add_task(
+        email_verification_service.send_otp_email,
+        user.email,
+        otp,
+    )
+    
+    return {
+        "user": UserResponse.model_validate(user),
+        "verification_token": verification_token,
+        "message": "Registration successful. Verification OTP sent."
+    }
 
 
 @router.post("/login", response_model=Token)
@@ -75,4 +93,96 @@ def login(request: Request, user_in: UserLogin, db: Session = Depends(deps.get_d
         "access_token": access_token,
         "token_type": "bearer",
         "user": user,
+    }
+
+
+@router.post("/send-email-verification")
+@limiter.limit(AUTH_LIMIT)
+def send_email_verification(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    verify_in: EmailVerificationRequest = None,
+    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(deps.get_db),
+):
+    """
+    Send a 6-digit verification code to the user's email.
+    If verify_in.email is provided, it uses that; otherwise uses current_user.email.
+    """
+    email = verify_in.email if verify_in and verify_in.email else current_user.email
+    
+    # Check if user is already verified
+    user = db.query(User).filter(User.email == email).first()
+    if user and user.email_verified:
+        raise HTTPException(status_code=400, detail="Email is already verified")
+
+    otp, token = email_verification_service.create_email_otp_token(email)
+    
+    # Send email in background
+    background_tasks.add_task(
+        email_verification_service.send_otp_email,
+        email,
+        otp,
+    )
+    
+    return {
+        "message": "Verification OTP sent",
+        "verification_token": token
+    }
+
+
+@router.post("/verify-email")
+@limiter.limit(AUTH_LIMIT)
+def verify_email(
+    request: Request,
+    verify_in: EmailVerificationVerify,
+    db: Session = Depends(deps.get_db),
+):
+    """
+    Verify the 6-digit OTP and mark the user as verified.
+    """
+    email = email_verification_service.verify_email_token(verify_in.token, verify_in.otp)
+    
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user.email_verified = True
+    db.commit()
+    
+    return {"message": "Email verified successfully"}
+
+
+@router.post("/resend-verification")
+@limiter.limit("5/minute")
+def resend_verification(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    verify_in: EmailVerificationRequest,
+    db: Session = Depends(deps.get_db),
+):
+    """
+    Resend verification code. Public endpoint (no auth required) since the
+    user lands here immediately after registration before they log in.
+    Rate-limited to 5/minute to prevent abuse.
+    """
+    if not verify_in.email:
+        raise HTTPException(status_code=400, detail="Email is required to resend verification code")
+
+    user = db.query(User).filter(User.email == verify_in.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.email_verified:
+        raise HTTPException(status_code=400, detail="Email is already verified")
+
+    otp, token = email_verification_service.create_email_otp_token(verify_in.email)
+    background_tasks.add_task(
+        email_verification_service.send_otp_email,
+        verify_in.email,
+        otp,
+    )
+
+    return {
+        "message": "Verification OTP sent",
+        "verification_token": token,
     }

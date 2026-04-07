@@ -22,6 +22,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     dob = Column(Date, nullable=True)
     phone = Column(String(25), nullable=True)
+    email_verified = Column(Boolean, default=False)
 
     # Relationships
     owned_organizations = relationship("Organization", back_populates="owner", foreign_keys="Organization.owner_id")

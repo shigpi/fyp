@@ -4,7 +4,6 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -55,12 +54,49 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 
+import traceback
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
 # ── Validation error handler ──────────────────────────────────────────────────
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Format Pydantic validation errors into clean user-friendly strings."""
+    errors = exc.errors()
+    error_messages = []
+    for error in errors:
+        loc = error.get("loc", [])
+        field = str(loc[-1]) if len(loc) > 0 else "Field"
+        msg = error.get("msg", "Invalid value")
+        
+        # Clean up Pydantic's "Value error, " prefix to make it more human-readable
+        if msg.startswith("Value error, "):
+            msg = msg[len("Value error, "):]
+            
+        error_messages.append(f"{field}: {msg}" if field != "body" else msg)
+    
     return JSONResponse(
         status_code=422,
-        content={"detail": exc.errors()},
+        content={"detail": " | ".join(error_messages) or "Validation Error"}
+    )
+
+# ── Standard HTTP Exceptions ──────────────────────────────────────────────────
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Ensure HTTP exceptions uniformly return the 'detail' JSON structure."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": str(exc.detail)}
+    )
+
+# ── Global unhandled wrapper ──────────────────────────────────────────────────
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """Catch-all for 500 errors to prevent HTML stack traces on the client side."""
+    print(f"Unhandled Exception on {request.url.path}: {exc}")
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An unexpected server error occurred. Please try again later."}
     )
 
 
@@ -74,7 +110,26 @@ app.include_router(docs.router, prefix="/admin", tags=["docs"])
 app.include_router(organizations.router, prefix="/organizations", tags=["organizations"])
 
 # ── Static / frontend pages ───────────────────────────────────────────────────
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+# Serve static files with no-cache headers so browsers always fetch fresh JS/CSS
+from starlette.staticfiles import StaticFiles as _StaticFiles
+from starlette.responses import Response
+from starlette.types import ASGIApp, Receive, Scope, Send
+
+class NoCacheStaticFiles(_StaticFiles):
+    """StaticFiles subclass that adds Cache-Control: no-cache to JS and CSS."""
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        async def send_with_no_cache(message):
+            if message["type"] == "http.response.start":
+                path = scope.get("path", "")
+                if path.endswith(".js") or path.endswith(".css"):
+                    headers = list(message.get("headers", []))
+                    headers = [h for h in headers if h[0].lower() != b"cache-control"]
+                    headers.append((b"cache-control", b"no-cache, no-store, must-revalidate"))
+                    message = {**message, "headers": headers}
+            await send(message)
+        await super().__call__(scope, receive, send_with_no_cache)
+
+app.mount("/static", NoCacheStaticFiles(directory="frontend"), name="static")
 
 
 @app.get("/")
@@ -90,6 +145,11 @@ async def login_page():
 @app.get("/register")
 async def register_page():
     return FileResponse("frontend/pages/auth/register.html")
+
+
+@app.get("/verify-otp")
+async def verify_otp_page():
+    return FileResponse("frontend/pages/auth/verify_otp.html")
 
 
 @app.get("/dashboard")

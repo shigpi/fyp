@@ -4,6 +4,7 @@ let token = localStorage.getItem('token');
 let allUsers = [];
 let allOrgs = [];
 let allPlans = [];
+let allSubs = [];
 
 // ── DOM Elements ──────────────────────────────────────────
 const logoutBtn = document.getElementById('logout-btn');
@@ -11,18 +12,24 @@ const currentUserNameSpan = document.getElementById('current-user-name');
 
 // Nav items
 const navLinks = {
-    users: document.getElementById('nav-users'),
-    orgs: document.getElementById('nav-orgs'),
-    plans: document.getElementById('nav-plans'),
-    subs: document.getElementById('nav-subs'),
+    users:   document.getElementById('nav-users'),
+    orgs:    document.getElementById('nav-orgs'),
+    plans:   document.getElementById('nav-plans'),
+    subs:    document.getElementById('nav-subs'),
+    members: document.getElementById('nav-members'),
+    usage:   document.getElementById('nav-usage'),
+    search:  document.getElementById('nav-search'),
 };
 
 // Sections
 const sections = {
-    users: document.getElementById('section-users'),
-    orgs: document.getElementById('section-orgs'),
-    plans: document.getElementById('section-plans'),
-    subs: document.getElementById('section-subs'),
+    users:   document.getElementById('section-users'),
+    orgs:    document.getElementById('section-orgs'),
+    plans:   document.getElementById('section-plans'),
+    subs:    document.getElementById('section-subs'),
+    members: document.getElementById('section-members'),
+    usage:   document.getElementById('section-usage'),
+    search:  document.getElementById('section-search'),
 };
 
 // ── Nav Switching ─────────────────────────────────────────
@@ -40,10 +47,12 @@ function switchSection(key) {
     sections[key].classList.add('active');
 
     // Fetch data when switching
-    if (key === 'users') fetchUsers();
-    else if (key === 'orgs') fetchOrganizations();
-    else if (key === 'plans') fetchPlans();
-    else if (key === 'subs') fetchSubscriptions();
+    if (key === 'users')   fetchUsers();
+    else if (key === 'orgs')    fetchOrganizations();
+    else if (key === 'plans')   fetchPlans();
+    else if (key === 'subs')    fetchSubscriptions();
+    else if (key === 'members') fetchOrgMembers();
+    else if (key === 'usage')   fetchUsage();
 }
 
 // ── Close buttons for all modals ──────────────────────────
@@ -82,7 +91,6 @@ async function fetchCurrentUser() {
     currentUser = await res.json();
     currentUserNameSpan.textContent = currentUser.full_name || currentUser.email;
 
-    // The dashboard is strictly for admins / super_admins
     if (currentUser.role !== 'admin' && currentUser.role !== 'super_admin') {
         alert('Access denied. Admin privileges required for the global dashboard.');
         logout();
@@ -92,6 +100,94 @@ async function fetchCurrentUser() {
 function logout() {
     localStorage.removeItem('token');
     window.location.href = '/login';
+}
+
+// ── Email Search ──────────────────────────────────────────
+const searchEmailInput = document.getElementById('search-email-input');
+const searchBtn = document.getElementById('search-btn');
+searchBtn.addEventListener('click', () => doEmailSearch());
+searchEmailInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doEmailSearch(); });
+
+async function doEmailSearch() {
+    const email = searchEmailInput.value.trim();
+    if (!email) return;
+    try {
+        const res = await fetch(`${API_URL}/admin/search?email=${encodeURIComponent(email)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Search failed');
+        const data = await res.json();
+        // Render results first, THEN switch section so the DOM is ready
+        renderSearchResults(data);
+        navLinks.search.style.display = 'block';
+        // Force repaint before switching
+        requestAnimationFrame(() => switchSection('search'));
+    } catch (err) { alert(err.message); }
+}
+
+function renderSearchResults(data) {
+    document.getElementById('search-query-label').textContent = `— "${data.query}"`;
+    const container = document.getElementById('search-results-container');
+
+    const tables = [
+        {
+            title: 'Users',
+            rows: data.users,
+            cols: ['id', 'full_name', 'email', 'role', 'is_active', 'email_verified'],
+            labels: ['ID', 'Name', 'Email', 'Role', 'Active', 'Verified'],
+            format: { is_active: v => v ? 'Yes' : 'No', email_verified: v => v ? 'Yes' : 'No', role: v => `<span class="badge badge-${v}">${v}</span>` }
+        },
+        {
+            title: 'Organizations',
+            rows: data.organizations,
+            cols: ['id', 'name', 'slug', 'type', 'created_at'],
+            labels: ['ID', 'Name', 'Slug', 'Type', 'Created'],
+            format: { type: v => `<span class="badge badge-${v}">${v}</span>`, created_at: v => v ? new Date(v).toLocaleDateString() : '-' }
+        },
+        {
+            title: 'Memberships',
+            rows: data.memberships,
+            cols: ['id', 'org_name', 'user_email', 'role', 'joined_at'],
+            labels: ['ID', 'Organization', 'Email', 'Role', 'Joined'],
+            format: { role: v => `<span class="badge badge-${v}">${v}</span>`, joined_at: v => v ? new Date(v).toLocaleDateString() : '-' }
+        },
+        {
+            title: 'Subscriptions',
+            rows: data.subscriptions,
+            cols: ['id', 'org_name', 'plan_name', 'type', 'current_period_start', 'current_period_end', 'cancel_at_period_end'],
+            labels: ['ID', 'Org', 'Plan', 'Billing', 'Start', 'End', 'Cancel?'],
+            format: { type: v => `<span class="badge badge-${v}">${v}</span>`, cancel_at_period_end: v => v ? 'Yes' : 'No' }
+        },
+        {
+            title: 'Usage Records',
+            rows: data.usages,
+            cols: ['id', 'org_name', 'sub_description', 'minutes_used', 'created_at'],
+            labels: ['ID', 'Org', 'Subscription', 'Minutes Used', 'Created'],
+            format: { created_at: v => v ? new Date(v).toLocaleDateString() : '-' }
+        },
+    ];
+
+    let html = '';
+    tables.forEach(t => {
+        html += `<div class="search-group">
+            <h3 class="search-group-title">${t.title} <span class="count-badge">${t.rows.length}</span></h3>`;
+        if (t.rows.length === 0) {
+            html += `<p class="empty-state">No matching ${t.title.toLowerCase()} found.</p>`;
+        } else {
+            html += `<div class="table-container"><table>
+                <thead><tr>${t.labels.map(l => `<th>${l}</th>`).join('')}</tr></thead>
+                <tbody>${t.rows.map(row =>
+                    `<tr>${t.cols.map(col => {
+                        const val = row[col] ?? '-';
+                        const formatted = (t.format && t.format[col]) ? t.format[col](val) : val;
+                        return `<td>${formatted}</td>`;
+                    }).join('')}</tr>`
+                ).join('')}</tbody>
+            </table></div>`;
+        }
+        html += '</div>';
+    });
+    container.innerHTML = html;
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -104,6 +200,12 @@ const userForm = document.getElementById('user-form');
 document.getElementById('add-user-btn').addEventListener('click', () => openUserModal());
 userForm.addEventListener('submit', handleUserSubmit);
 
+// Live filter
+document.getElementById('filter-users').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    renderUsers(allUsers.filter(u => u.email.toLowerCase().includes(q)));
+});
+
 async function fetchUsers() {
     const res = await fetch(`${API_URL}/admin/users`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -115,16 +217,19 @@ async function fetchUsers() {
 
 function renderUsers(users) {
     usersTableBody.innerHTML = '';
+    if (users.length === 0) {
+        usersTableBody.innerHTML = '<tr><td colspan="7" class="empty-cell">No users found.</td></tr>';
+        return;
+    }
     users.forEach(user => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${user.id}</td>
             <td>${user.full_name || '-'}</td>
-            <td>${user.email}</td>
-            <td>${user.phone || '-'}</td>
-            <td>${user.dob || '-'}</td>
+            <td class="cell-wrap">${user.email}</td>
             <td><span class="badge badge-${user.role}">${user.role}</span></td>
-            <td>${user.is_active ? 'Active' : 'Inactive'}</td>
+            <td>${user.is_active ? '<span class="badge badge-active">Active</span>' : '<span class="badge badge-inactive">Inactive</span>'}</td>
+            <td>${user.email_verified ? 'Yes' : 'No'}</td>
             <td>
                 <button class="action-btn edit-btn" onclick="editUser(${user.id})">Edit</button>
                 ${currentUser.role === 'super_admin' ? `<button class="action-btn delete-btn" onclick="deleteUser(${user.id})">Delete</button>` : ''}
@@ -143,6 +248,7 @@ async function handleUserSubmit(e) {
         dob: document.getElementById('dob').value || null,
         role: document.getElementById('role').value,
         is_active: document.getElementById('is-active').checked,
+        email_verified: document.getElementById('email-verified').checked,
     };
     const pw = document.getElementById('password').value;
     if (pw) formData.password = pw;
@@ -180,12 +286,14 @@ function openUserModal(user = null) {
         document.getElementById('dob').value = user.dob || '';
         document.getElementById('role').value = user.role;
         document.getElementById('is-active').checked = user.is_active;
+        document.getElementById('email-verified').checked = user.email_verified || false;
         document.getElementById('password-hint').style.display = 'block';
         document.getElementById('password').required = false;
     } else {
         document.getElementById('modal-title').textContent = 'Add User';
         userForm.reset();
         document.getElementById('user-id').value = '';
+        document.getElementById('email-verified').checked = false;
         document.getElementById('password-hint').style.display = 'none';
         document.getElementById('password').required = true;
     }
@@ -202,7 +310,7 @@ window.editUser = async (id) => {
 };
 
 window.deleteUser = async (id) => {
-    if (!confirm('Delete this user?')) return;
+    if (!confirm('Delete this user? This will also delete their organization.')) return;
     try {
         const res = await fetch(`${API_URL}/admin/users/${id}`, {
             method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
@@ -222,6 +330,11 @@ const orgForm = document.getElementById('org-form');
 document.getElementById('add-org-btn').addEventListener('click', () => openOrgModal());
 orgForm.addEventListener('submit', handleOrgSubmit);
 
+document.getElementById('filter-orgs').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    renderOrganizations(allOrgs.filter(o => o.name.toLowerCase().includes(q)));
+});
+
 async function fetchOrganizations() {
     const res = await fetch(`${API_URL}/admin/organizations`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -233,6 +346,10 @@ async function fetchOrganizations() {
 
 function renderOrganizations(orgs) {
     orgsTableBody.innerHTML = '';
+    if (orgs.length === 0) {
+        orgsTableBody.innerHTML = '<tr><td colspan="7" class="empty-cell">No organizations found.</td></tr>';
+        return;
+    }
     orgs.forEach(org => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -253,7 +370,6 @@ function renderOrganizations(orgs) {
 async function handleOrgSubmit(e) {
     e.preventDefault();
     const orgId = document.getElementById('org-id').value;
-
     try {
         let res;
         if (orgId) {
@@ -285,10 +401,9 @@ async function handleOrgSubmit(e) {
 }
 
 async function openOrgModal(org = null) {
-    // Populate owner select from users
     if (allUsers.length === 0) await fetchUsers();
     const ownerSelect = document.getElementById('org-owner');
-    ownerSelect.innerHTML = allUsers.map(u => `<option value="${u.id}">${u.full_name || u.email}</option>`).join('');
+    ownerSelect.innerHTML = allUsers.map(u => `<option value="${u.id}">${u.full_name || u.email} (${u.email})</option>`).join('');
 
     orgModal.style.display = 'block';
     if (org) {
@@ -296,7 +411,7 @@ async function openOrgModal(org = null) {
         document.getElementById('org-id').value = org.id;
         document.getElementById('org-name').value = org.name;
         document.getElementById('org-type').value = org.type;
-        document.getElementById('org-owner-group').style.display = 'none'; // Cannot change owner on edit
+        document.getElementById('org-owner-group').style.display = 'none';
     } else {
         document.getElementById('org-modal-title').textContent = 'Add Organization';
         orgForm.reset();
@@ -347,6 +462,10 @@ async function fetchPlans() {
 
 function renderPlans(plans) {
     plansTableBody.innerHTML = '';
+    if (plans.length === 0) {
+        plansTableBody.innerHTML = '<tr><td colspan="7" class="empty-cell">No plans found.</td></tr>';
+        return;
+    }
     plans.forEach(plan => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -374,7 +493,6 @@ async function handlePlanSubmit(e) {
         token_quota: parseInt(document.getElementById('plan-token-quota').value),
         max_users: parseInt(document.getElementById('plan-max-users').value),
     };
-
     try {
         let res;
         if (planId) {
@@ -449,12 +567,16 @@ async function fetchSubscriptions() {
         headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!res.ok) throw { status: res.status };
-    const subs = await res.json();
-    renderSubscriptions(subs);
+    allSubs = await res.json();
+    renderSubscriptions(allSubs);
 }
 
 function renderSubscriptions(subs) {
     subsTableBody.innerHTML = '';
+    if (subs.length === 0) {
+        subsTableBody.innerHTML = '<tr><td colspan="8" class="empty-cell">No subscriptions found.</td></tr>';
+        return;
+    }
     subs.forEach(sub => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -476,7 +598,6 @@ function renderSubscriptions(subs) {
 async function handleSubSubmit(e) {
     e.preventDefault();
     const subId = document.getElementById('sub-id').value;
-
     try {
         let res;
         if (subId) {
@@ -509,25 +630,16 @@ async function handleSubSubmit(e) {
 }
 
 async function openSubModal(sub = null) {
-    // Populate org and plan selects
     if (allOrgs.length === 0) {
-        const res = await fetch(`${API_URL}/admin/organizations`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch(`${API_URL}/admin/organizations`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) allOrgs = await res.json();
     }
     if (allPlans.length === 0) {
-        const res = await fetch(`${API_URL}/admin/plans`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch(`${API_URL}/admin/plans`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) allPlans = await res.json();
     }
-
-    const orgSelect = document.getElementById('sub-org');
-    orgSelect.innerHTML = allOrgs.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
-
-    const planSelect = document.getElementById('sub-plan');
-    planSelect.innerHTML = allPlans.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    document.getElementById('sub-org').innerHTML = allOrgs.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+    document.getElementById('sub-plan').innerHTML = allPlans.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
 
     subModal.style.display = 'block';
     if (sub) {
@@ -537,7 +649,7 @@ async function openSubModal(sub = null) {
         document.getElementById('sub-plan').value = sub.plan_id;
         document.getElementById('sub-type').value = sub.type;
         document.getElementById('sub-cancel').checked = sub.cancel_at_period_end;
-        document.getElementById('sub-org-group').style.display = 'none'; // Cannot change org on edit
+        document.getElementById('sub-org-group').style.display = 'none';
         document.getElementById('sub-cancel-group').style.display = 'block';
     } else {
         document.getElementById('sub-modal-title').textContent = 'Add Subscription';
@@ -566,5 +678,260 @@ window.deleteSub = async (id) => {
         });
         if (!res.ok) throw new Error('Failed to delete subscription');
         fetchSubscriptions();
+    } catch (err) { alert(err.message); }
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  ORG MEMBERS CRUD
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+let allMembers = [];
+const membersTableBody = document.querySelector('#members-table tbody');
+const memberModal = document.getElementById('member-modal');
+const memberForm = document.getElementById('member-form');
+document.getElementById('add-member-btn').addEventListener('click', () => openMemberModal());
+memberForm.addEventListener('submit', handleMemberSubmit);
+
+document.getElementById('filter-members').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    renderOrgMembers(allMembers.filter(m =>
+        (m.user_email || '').toLowerCase().includes(q) ||
+        (m.org_name || '').toLowerCase().includes(q)
+    ));
+});
+
+async function fetchOrgMembers() {
+    const res = await fetch(`${API_URL}/admin/org-members`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw { status: res.status };
+    allMembers = await res.json();
+    renderOrgMembers(allMembers);
+}
+
+function renderOrgMembers(members) {
+    membersTableBody.innerHTML = '';
+    if (members.length === 0) {
+        membersTableBody.innerHTML = '<tr><td colspan="7" class="empty-cell">No members found.</td></tr>';
+        return;
+    }
+    members.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${m.id}</td>
+            <td>${m.org_name || m.org_id}</td>
+            <td>${m.user_name || '-'}</td>
+            <td class="cell-wrap">${m.user_email || '-'}</td>
+            <td><span class="badge badge-${m.role}">${m.role}</span></td>
+            <td>${m.joined_at ? new Date(m.joined_at).toLocaleDateString() : '-'}</td>
+            <td>
+                <button class="action-btn edit-btn" onclick="editMember(${m.id})">Edit Role</button>
+                ${currentUser.role === 'super_admin' ? `<button class="action-btn delete-btn" onclick="deleteMember(${m.id})">Remove</button>` : ''}
+            </td>`;
+        membersTableBody.appendChild(tr);
+    });
+}
+
+async function handleMemberSubmit(e) {
+    e.preventDefault();
+    const memberId = document.getElementById('member-id').value;
+    try {
+        let res;
+        if (memberId) {
+            const formData = { role: document.getElementById('member-role').value };
+            res = await fetch(`${API_URL}/admin/org-members/${memberId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(formData),
+            });
+        } else {
+            const formData = {
+                org_id: parseInt(document.getElementById('member-org').value),
+                user_id: parseInt(document.getElementById('member-user').value),
+                role: document.getElementById('member-role').value,
+            };
+            res = await fetch(`${API_URL}/admin/org-members`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(formData),
+            });
+        }
+        if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Failed'); }
+        memberModal.style.display = 'none';
+        fetchOrgMembers();
+    } catch (err) { alert(err.message); }
+}
+
+async function openMemberModal(member = null) {
+    if (allOrgs.length === 0) {
+        const res = await fetch(`${API_URL}/admin/organizations`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) allOrgs = await res.json();
+    }
+    if (allUsers.length === 0) await fetchUsers();
+
+    document.getElementById('member-org').innerHTML = allOrgs.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+    document.getElementById('member-user').innerHTML = allUsers.map(u => `<option value="${u.id}">${u.full_name || u.email} (${u.email})</option>`).join('');
+
+    memberModal.style.display = 'block';
+    if (member) {
+        document.getElementById('member-modal-title').textContent = 'Edit Member Role';
+        document.getElementById('member-id').value = member.id;
+        document.getElementById('member-role').value = member.role;
+        document.getElementById('member-org-group').style.display = 'none';
+        document.getElementById('member-user-group').style.display = 'none';
+    } else {
+        document.getElementById('member-modal-title').textContent = 'Add Org Member';
+        memberForm.reset();
+        document.getElementById('member-id').value = '';
+        document.getElementById('member-org-group').style.display = 'block';
+        document.getElementById('member-user-group').style.display = 'block';
+    }
+}
+
+window.editMember = async (id) => {
+    try {
+        const res = await fetch(`${API_URL}/admin/org-members/${id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Failed to fetch member');
+        openMemberModal(await res.json());
+    } catch (err) { alert(err.message); }
+};
+
+window.deleteMember = async (id) => {
+    if (!confirm('Remove this member from the organization?')) return;
+    try {
+        const res = await fetch(`${API_URL}/admin/org-members/${id}`, {
+            method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Failed to remove member');
+        fetchOrgMembers();
+    } catch (err) { alert(err.message); }
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  SUBSCRIPTION USAGE CRUD
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+let allUsage = [];
+const usageTableBody = document.querySelector('#usage-table tbody');
+const usageModal = document.getElementById('usage-modal');
+const usageForm = document.getElementById('usage-form');
+document.getElementById('add-usage-btn').addEventListener('click', () => openUsageModal());
+usageForm.addEventListener('submit', handleUsageSubmit);
+
+document.getElementById('filter-usage').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    renderUsage(allUsage.filter(u => (u.org_name || '').toLowerCase().includes(q)));
+});
+
+async function fetchUsage() {
+    const res = await fetch(`${API_URL}/admin/subscription-usage`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw { status: res.status };
+    allUsage = await res.json();
+    renderUsage(allUsage);
+}
+
+function renderUsage(usages) {
+    usageTableBody.innerHTML = '';
+    if (usages.length === 0) {
+        usageTableBody.innerHTML = '<tr><td colspan="7" class="empty-cell">No usage records found.</td></tr>';
+        return;
+    }
+    usages.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${u.id}</td>
+            <td>${u.org_name || u.org_id}</td>
+            <td>${u.sub_description || u.subscription_id}</td>
+            <td><strong>${Number(u.minutes_used).toFixed(2)}</strong> min</td>
+            <td>${u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}</td>
+            <td>${u.updated_at ? new Date(u.updated_at).toLocaleDateString() : '-'}</td>
+            <td>
+                <button class="action-btn edit-btn" onclick="editUsage(${u.id})">Edit</button>
+                ${currentUser.role === 'super_admin' ? `<button class="action-btn delete-btn" onclick="deleteUsage(${u.id})">Delete</button>` : ''}
+            </td>`;
+        usageTableBody.appendChild(tr);
+    });
+}
+
+async function handleUsageSubmit(e) {
+    e.preventDefault();
+    const usageId = document.getElementById('usage-id').value;
+    try {
+        let res;
+        if (usageId) {
+            const formData = { minutes_used: parseFloat(document.getElementById('usage-minutes').value) };
+            res = await fetch(`${API_URL}/admin/subscription-usage/${usageId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(formData),
+            });
+        } else {
+            const formData = {
+                org_id: parseInt(document.getElementById('usage-org').value),
+                subscription_id: parseInt(document.getElementById('usage-sub').value),
+                minutes_used: parseFloat(document.getElementById('usage-minutes').value),
+            };
+            res = await fetch(`${API_URL}/admin/subscription-usage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(formData),
+            });
+        }
+        if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Failed'); }
+        usageModal.style.display = 'none';
+        fetchUsage();
+    } catch (err) { alert(err.message); }
+}
+
+async function openUsageModal(usage = null) {
+    if (allOrgs.length === 0) {
+        const res = await fetch(`${API_URL}/admin/organizations`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) allOrgs = await res.json();
+    }
+    if (allSubs.length === 0) {
+        const res = await fetch(`${API_URL}/admin/subscriptions`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) allSubs = await res.json();
+    }
+    document.getElementById('usage-org').innerHTML = allOrgs.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+    document.getElementById('usage-sub').innerHTML = allSubs.map(s => `<option value="${s.id}">${s.org_name || s.org_id} — ${s.plan_name || s.plan_id} (${s.type})</option>`).join('');
+
+    usageModal.style.display = 'block';
+    if (usage) {
+        document.getElementById('usage-modal-title').textContent = 'Edit Usage Record';
+        document.getElementById('usage-id').value = usage.id;
+        document.getElementById('usage-minutes').value = usage.minutes_used;
+        document.getElementById('usage-org-group').style.display = 'none';
+        document.getElementById('usage-sub-group').style.display = 'none';
+    } else {
+        document.getElementById('usage-modal-title').textContent = 'Add Usage Record';
+        usageForm.reset();
+        document.getElementById('usage-id').value = '';
+        document.getElementById('usage-org-group').style.display = 'block';
+        document.getElementById('usage-sub-group').style.display = 'block';
+    }
+}
+
+window.editUsage = async (id) => {
+    try {
+        const res = await fetch(`${API_URL}/admin/subscription-usage/${id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Failed to fetch usage record');
+        openUsageModal(await res.json());
+    } catch (err) { alert(err.message); }
+};
+
+window.deleteUsage = async (id) => {
+    if (!confirm('Delete this usage record?')) return;
+    try {
+        const res = await fetch(`${API_URL}/admin/subscription-usage/${id}`, {
+            method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Failed to delete usage record');
+        fetchUsage();
     } catch (err) { alert(err.message); }
 };

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
@@ -13,12 +13,22 @@
     <div class="container">
         <aside class="sidebar">
             <div class="logo">AdminPanel</div>
+
+            <!-- ── Email Search ── -->
+            <div class="search-box">
+                <input type="email" id="search-email-input" placeholder="Search by email…" autocomplete="off">
+                <button id="search-btn" class="btn-search">Search</button>
+            </div>
+
             <nav>
                 <ul>
                     <li><a href="#" class="active" id="nav-users">Users</a></li>
                     <li><a href="#" id="nav-orgs">Organizations</a></li>
                     <li><a href="#" id="nav-plans">Plans</a></li>
                     <li><a href="#" id="nav-subs">Subscriptions</a></li>
+                    <li><a href="#" id="nav-members">Org Members</a></li>
+                    <li><a href="#" id="nav-usage">Sub Usage</a></li>
+                    <li><a href="#" id="nav-search" style="display:none;">Search Results</a></li>
                 </ul>
             </nav>
             <div class="user-info">
@@ -26,13 +36,17 @@
                 <button id="logout-btn">Logout</button>
             </div>
         </aside>
+
         <main class="main-content">
 
             <!-- ── Users Section ── -->
             <div id="section-users" class="section active">
                 <header>
                     <h1>User Management</h1>
-                    <button id="add-user-btn" class="btn-primary">Add User</button>
+                    <div class="header-actions">
+                        <input type="text" id="filter-users" class="inline-filter" placeholder="Filter by email…">
+                        <button id="add-user-btn" class="btn-primary">Add User</button>
+                    </div>
                 </header>
                 <div class="content">
                     <div class="table-container">
@@ -42,10 +56,9 @@
                                     <th>ID</th>
                                     <th>Full Name</th>
                                     <th>Email</th>
-                                    <th>Phone</th>
-                                    <th>DOB</th>
                                     <th>Role</th>
                                     <th>Status</th>
+                                    <th>Verified</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -59,7 +72,10 @@
             <div id="section-orgs" class="section">
                 <header>
                     <h1>Organization Management</h1>
-                    <button id="add-org-btn" class="btn-primary">Add Organization</button>
+                    <div class="header-actions">
+                        <input type="text" id="filter-orgs" class="inline-filter" placeholder="Filter by name…">
+                        <button id="add-org-btn" class="btn-primary">Add Organization</button>
+                    </div>
                 </header>
                 <div class="content">
                     <div class="table-container">
@@ -134,6 +150,74 @@
                 </div>
             </div>
 
+            <!-- ── Org Members Section ── -->
+            <div id="section-members" class="section">
+                <header>
+                    <h1>Org Member Management</h1>
+                    <div class="header-actions">
+                        <input type="text" id="filter-members" class="inline-filter" placeholder="Filter by email…">
+                        <button id="add-member-btn" class="btn-primary">Add Member</button>
+                    </div>
+                </header>
+                <div class="content">
+                    <div class="table-container">
+                        <table id="members-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Organization</th>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Subscription Usage Section ── -->
+            <div id="section-usage" class="section">
+                <header>
+                    <h1>Subscription Usage</h1>
+                    <div class="header-actions">
+                        <input type="text" id="filter-usage" class="inline-filter" placeholder="Filter by org…">
+                        <button id="add-usage-btn" class="btn-primary">Add Usage Record</button>
+                    </div>
+                </header>
+                <div class="content">
+                    <div class="table-container">
+                        <table id="usage-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Organization</th>
+                                    <th>Subscription</th>
+                                    <th>Minutes Used</th>
+                                    <th>Created</th>
+                                    <th>Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Search Results Section ── -->
+            <div id="section-search" class="section">
+                <header>
+                    <h1>Search Results <span id="search-query-label" class="search-label"></span></h1>
+                </header>
+                <div id="search-results-container">
+                    <p class="empty-state">Enter an email and press Search.</p>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -173,9 +257,13 @@
                         <option value="super_admin">Super Admin</option>
                     </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group form-group--inline">
                     <label for="is-active">Active</label>
                     <input type="checkbox" id="is-active" checked>
+                </div>
+                <div class="form-group form-group--inline">
+                    <label for="email-verified">Email Verified</label>
+                    <input type="checkbox" id="email-verified">
                 </div>
                 <button type="submit" class="btn-primary">Save</button>
             </form>
@@ -272,7 +360,59 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js"></script>
+    <!-- ── Modal: Org Member ── -->
+    <div id="member-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" data-modal="member-modal">&times;</span>
+            <h2 id="member-modal-title">Add Org Member</h2>
+            <form id="member-form">
+                <input type="hidden" id="member-id">
+                <div class="form-group" id="member-org-group">
+                    <label for="member-org">Organization</label>
+                    <select id="member-org" required></select>
+                </div>
+                <div class="form-group" id="member-user-group">
+                    <label for="member-user">User</label>
+                    <select id="member-user" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="member-role">Role</label>
+                    <select id="member-role">
+                        <option value="member">Member</option>
+                        <option value="admin">Admin</option>
+                        <option value="owner">Owner</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── Modal: Subscription Usage ── -->
+    <div id="usage-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" data-modal="usage-modal">&times;</span>
+            <h2 id="usage-modal-title">Add Usage Record</h2>
+            <form id="usage-form">
+                <input type="hidden" id="usage-id">
+                <div class="form-group" id="usage-org-group">
+                    <label for="usage-org">Organization</label>
+                    <select id="usage-org" required></select>
+                </div>
+                <div class="form-group" id="usage-sub-group">
+                    <label for="usage-sub">Subscription</label>
+                    <select id="usage-sub" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="usage-minutes">Minutes Used</label>
+                    <input type="number" id="usage-minutes" step="0.01" value="0" required>
+                </div>
+                <button type="submit" class="btn-primary">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js?v=2"></script>
 </body>
 
 </html>

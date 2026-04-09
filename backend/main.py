@@ -165,3 +165,13 @@ async def organization_page():
 @app.get("/app-store")
 async def app_store_page():
     return FileResponse("frontend/pages/misc/app_store_redirect.html")
+
+
+@app.get("/forgot-password")
+async def forgot_password_page():
+    return FileResponse("frontend/pages/auth/forgot_password.html")
+
+
+@app.get("/reset-password")
+async def reset_password_page():
+    return FileResponse("frontend/pages/auth/reset_password.html")

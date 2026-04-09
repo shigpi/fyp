@@ -88,3 +88,22 @@ class EmailVerificationRequest(BaseModel):
 class EmailVerificationVerify(BaseModel):
     token: str
     otp: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _sanitize_email(cls, v):
+        return sanitize_email(v) if v else v
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+    @field_validator("new_password", mode="before")
+    @classmethod
+    def _validate_password(cls, v):
+        return validate_password_strength(v)

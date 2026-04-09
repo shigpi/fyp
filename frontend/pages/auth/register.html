@@ -4,157 +4,265 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>VoiceScribe - Create Account</title>
-    <!-- Use Google Fonts to replicate Flutter's default smooth typography -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <meta name="description" content="Create your VoiceScribe account to get started with AI-powered multilingual transcription.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #000000;
-            --container-bg: #171717;
-            --border-color: #262626;
-            --text-primary: #FFFFFF;
-            --text-secondary: #A3A3A3;
-            --input-bg: #171717;
-            --button-bg: #FFFFFF;
-            --button-text: #000000;
-            --error-color: #ef4444;
+            --bg:         #000000;
+            --card:       #171717;
+            --border:     #262626;
+            --text:       #FFFFFF;
+            --muted:      #A3A3A3;
+            --subtle:     #525252;
+            --input-bg:   #171717;
+            --btn-bg:     #FFFFFF;
+            --btn-text:   #000000;
+            --error:      #ef4444;
+            --success:    #22c55e;
         }
+
+        *, *::before, *::after { box-sizing: border-box; }
 
         body {
             margin: 0;
             padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
         }
 
+        .page {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top nav with back-to-home */
+        .top-bar {
+            width: 100%;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .home-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .home-link:hover { color: var(--text); }
+        .home-link svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
         .container {
             width: 100%;
             max-width: 400px;
-            padding: 20px;
-            box-sizing: border-box;
+            padding: 32px 20px 40px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             flex-grow: 1;
+            margin: 0 auto;
         }
 
         .logo {
             width: 48px;
             height: 48px;
-            background-color: var(--container-bg);
-            border: 1px solid var(--border-color);
+            background: var(--card);
+            border: 1px solid var(--border);
             border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 16px;
         }
+        .logo svg { width: 24px; height: 24px; fill: var(--text); }
 
-        .logo svg {
-            width: 24px;
-            height: 24px;
-            fill: var(--text-primary);
-        }
+        h1 { font-size: 24px; font-weight: 600; margin: 0 0 4px; }
+        .subtitle { font-size: 14px; color: var(--muted); margin: 0 0 32px; text-align: center; }
 
-        h1 {
-            font-size: 24px;
-            font-weight: 600;
-            margin: 0 0 4px 0;
-        }
+        form { width: 100%; display: flex; flex-direction: column; gap: 10px; }
 
-        p.subtitle {
-            font-size: 14px;
-            color: var(--text-secondary);
-            margin: 0 0 32px 0;
-        }
-
-        form {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .input-group {
-            width: 100%;
-        }
+        .input-wrapper { position: relative; width: 100%; }
 
         input {
             width: 100%;
             padding: 16px;
-            background-color: var(--input-bg);
-            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            border: 1px solid var(--border);
             border-radius: 12px;
-            color: var(--text-primary);
+            color: var(--text);
             font-size: 16px;
-            box-sizing: border-box;
             outline: none;
-            transition: border-color 0.2s ease;
+            transition: border-color 0.2s;
+            font-family: inherit;
         }
+        input[type="password"] { padding-right: 48px; }
+        input::placeholder { color: var(--muted); }
+        input:focus { border-color: var(--subtle); }
 
-        input::placeholder {
-            color: var(--text-secondary);
+        /* Toggle password visibility */
+        .eye-btn {
+            position: absolute;
+            right: 14px; top: 50%;
+            transform: translateY(-50%);
+            background: none; border: none;
+            cursor: pointer; padding: 4px;
+            color: var(--muted);
+            display: flex; align-items: center;
+            transition: color 0.2s;
         }
+        .eye-btn:hover { color: var(--text); }
 
-        input:focus {
-            border-color: #525252;
+        /* Password strength bar */
+        .strength-wrapper {
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: -4px;
         }
+        .strength-bar-track {
+            width: 100%;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .strength-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.3s ease, background-color 0.3s ease;
+            width: 0%;
+        }
+        .strength-label { font-size: 12px; color: var(--muted); }
 
-        button {
+        /* Requirements checklist */
+        .requirements {
+            display: none;
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            gap: 6px;
+            flex-direction: column;
+            margin-top: -4px;
+        }
+        .req-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--muted);
+            transition: color 0.2s;
+        }
+        .req-item.met { color: #86efac; }
+        .req-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--subtle);
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .req-item.met .req-dot { background: var(--success); }
+
+        /* Fix date input appearance */
+        input[type="date"] { color-scheme: dark; }
+        ::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
+
+        .btn {
             width: 100%;
             padding: 16px;
-            margin-top: 12px;
-            background-color: var(--button-bg);
-            color: var(--button-text);
+            margin-top: 4px;
+            background: var(--btn-bg);
+            color: var(--btn-text);
             border: none;
             border-radius: 12px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: opacity 0.2s ease;
+            transition: opacity 0.2s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
+        .btn:active { opacity: 0.8; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        button:active {
-            opacity: 0.8;
+        .spinner {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--btn-text);
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .error-message {
-            color: var(--error-color);
+        .alert {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
             font-size: 14px;
-            margin-top: -4px;
-            margin-bottom: 8px;
+            line-height: 1.5;
             display: none;
             text-align: center;
         }
-        
-        .loader {
-            display: none;
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--button-text);
-            border-bottom-color: transparent;
-            border-radius: 50%;
-            margin: 0 auto;
-            animation: rotation 1s linear infinite;
+        .alert-error { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
+
+        .back-link {
+            margin-top: 24px;
+            font-size: 14px;
+            color: var(--muted);
+            text-decoration: none;
+            transition: color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .back-link:hover { color: var(--text); }
+
+        .divider {
+            width: 100%;
+            height: 1px;
+            background: var(--border);
+            margin: 4px 0;
         }
 
-        @keyframes rotation {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--subtle);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            width: 100%;
+            margin: 4px 0 -2px;
         }
     </style>
 </head>
 <body>
+<div class="page">
+    <nav class="top-bar">
+        <a href="/" class="home-link">
+            <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            Back to Home
+        </a>
+    </nav>
+
     <div class="container">
         <div class="logo">
             <svg viewBox="0 0 24 24">
@@ -165,100 +273,205 @@
         <h1>Create Account</h1>
         <p class="subtitle">Join VoiceScribe today</p>
 
-        <div id="errorMessage" class="error-message"></div>
+        <div id="errorAlert" class="alert alert-error"></div>
 
         <form id="registerForm">
-            <div class="input-group">
-                <input type="text" id="fullName" placeholder="Full Name" required>
+            <input type="text" id="fullName" placeholder="Full Name" autocomplete="name" required>
+            <input type="email" id="email" placeholder="Email address" autocomplete="email" required>
+            <input type="date" id="dob" title="Date of Birth" required
+                   min="1900-01-01" max="2015-12-31">
+
+            <!-- Password with strength checker -->
+            <div class="input-wrapper">
+                <input type="password" id="password" placeholder="Password" autocomplete="new-password" required>
+                <button type="button" class="eye-btn" id="togglePassword" aria-label="Toggle password visibility">
+                    <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
             </div>
-            <div class="input-group">
-                <input type="email" id="email" placeholder="Email" required>
+
+            <!-- Strength bar -->
+            <div class="strength-wrapper" id="strengthWrapper">
+                <div class="strength-bar-track">
+                    <div class="strength-bar-fill" id="strengthBar"></div>
+                </div>
+                <span class="strength-label" id="strengthLabel"></span>
             </div>
-            <div class="input-group">
-                <input type="tel" id="phone" placeholder="Phone Number (Optional)">
+
+            <!-- Requirements -->
+            <div class="requirements" id="requirements">
+                <div class="req-item" id="reqLen"><div class="req-dot"></div>At least 8 characters</div>
+                <div class="req-item" id="reqUpper"><div class="req-dot"></div>One uppercase letter</div>
+                <div class="req-item" id="reqLower"><div class="req-dot"></div>One lowercase letter</div>
+                <div class="req-item" id="reqNum"><div class="req-dot"></div>One number</div>
             </div>
-            <div class="input-group">
-                <input type="date" id="dob" placeholder="Date of Birth">
+
+            <!-- Confirm password -->
+            <div class="input-wrapper">
+                <input type="password" id="confirmPassword" placeholder="Confirm password" autocomplete="new-password" required>
+                <button type="button" class="eye-btn" id="toggleConfirm" aria-label="Toggle confirm password visibility">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
             </div>
-            <div class="input-group">
-                <input type="password" id="password" placeholder="Password" required>
-            </div>
-            <div class="input-group">
-                <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
-            </div>
-            <button type="submit" id="submitBtn">
+
+            <div class="divider"></div>
+            <p class="section-label">Optional</p>
+
+            <input type="tel" id="phone" placeholder="Phone Number" autocomplete="tel">
+
+            <button type="submit" class="btn" id="submitBtn">
                 <span id="btnText">Create Account</span>
-                <div class="loader" id="btnLoader"></div>
+                <div class="spinner" id="btnSpinner"></div>
             </button>
         </form>
+
+        <a href="/login" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5M12 5l-7 7 7 7"/>
+            </svg>
+            Already have an account? Log in
+        </a>
     </div>
 
     <script>
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        const registerForm   = document.getElementById('registerForm');
+        const errorAlert     = document.getElementById('errorAlert');
+        const submitBtn      = document.getElementById('submitBtn');
+        const btnText        = document.getElementById('btnText');
+        const btnSpinner     = document.getElementById('btnSpinner');
+        const passwordInput  = document.getElementById('password');
+        const strengthWrapper = document.getElementById('strengthWrapper');
+        const strengthBar    = document.getElementById('strengthBar');
+        const strengthLabel  = document.getElementById('strengthLabel');
+        const requirements   = document.getElementById('requirements');
+        const reqLen         = document.getElementById('reqLen');
+        const reqUpper       = document.getElementById('reqUpper');
+        const reqLower       = document.getElementById('reqLower');
+        const reqNum         = document.getElementById('reqNum');
+
+        // ── Eye toggles ──────────────────────────────────────────────────────
+        function makeToggle(btnId, inputId) {
+            const btn   = document.getElementById(btnId);
+            const input = document.getElementById(inputId);
+            btn.addEventListener('click', () => {
+                const isHidden = input.type === 'password';
+                input.type = isHidden ? 'text' : 'password';
+                btn.style.color = isHidden ? '#ffffff' : '';
+            });
+        }
+        makeToggle('togglePassword', 'password');
+        makeToggle('toggleConfirm',  'confirmPassword');
+
+        // ── Password strength ────────────────────────────────────────────────
+        function evalStrength(pw) {
+            const checks = {
+                len:   pw.length >= 8,
+                upper: /[A-Z]/.test(pw),
+                lower: /[a-z]/.test(pw),
+                num:   /\d/.test(pw),
+            };
+            return { checks, score: Object.values(checks).filter(Boolean).length };
+        }
+
+        const STRENGTH = [
+            { label: '',       color: 'transparent', pct: '0%'   },
+            { label: 'Weak',   color: '#ef4444',      pct: '25%'  },
+            { label: 'Fair',   color: '#f59e0b',      pct: '50%'  },
+            { label: 'Good',   color: '#eab308',      pct: '75%'  },
+            { label: 'Strong', color: '#22c55e',      pct: '100%' },
+        ];
+
+        passwordInput.addEventListener('input', () => {
+            const pw = passwordInput.value;
+            if (!pw) {
+                strengthWrapper.style.display = 'none';
+                requirements.style.display    = 'none';
+                return;
+            }
+            strengthWrapper.style.display = 'flex';
+            requirements.style.display    = 'flex';
+
+            const { checks, score } = evalStrength(pw);
+            const s = STRENGTH[score];
+            strengthBar.style.width           = s.pct;
+            strengthBar.style.backgroundColor = s.color;
+            strengthLabel.textContent         = s.label;
+            strengthLabel.style.color         = s.color;
+
+            reqLen  .classList.toggle('met', checks.len);
+            reqUpper.classList.toggle('met', checks.upper);
+            reqLower.classList.toggle('met', checks.lower);
+            reqNum  .classList.toggle('met', checks.num);
+        });
+
+        // ── Helpers ──────────────────────────────────────────────────────────
+        function showError(msg) {
+            errorAlert.textContent = msg;
+            errorAlert.style.display = 'block';
+        }
+        function clearError() {
+            errorAlert.style.display = 'none';
+            errorAlert.textContent = '';
+        }
+        function setLoading(on) {
+            submitBtn.disabled = on;
+            btnText.style.display = on ? 'none' : 'inline';
+            btnSpinner.style.display = on ? 'block' : 'none';
+        }
+
+        // ── Submit ───────────────────────────────────────────────────────────
+        registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const fullName = document.getElementById('fullName').value;
-            const email = document.getElementById('email').value;
-            const phone = document.getElementById('phone').value;
-            const dob = document.getElementById('dob').value;
-            const password = document.getElementById('password').value;
+            clearError();
+
+            const fullName        = document.getElementById('fullName').value.trim();
+            const email           = document.getElementById('email').value.trim();
+            const phone           = document.getElementById('phone').value.trim();
+            const dob             = document.getElementById('dob').value;
+            const password        = passwordInput.value;
             const confirmPassword = document.getElementById('confirmPassword').value;
 
-            const errorEl = document.getElementById('errorMessage');
-            const submitBtn = document.getElementById('submitBtn');
-            const btnText = document.getElementById('btnText');
-            const btnLoader = document.getElementById('btnLoader');
-
-            // Validation
+            // Strength validation
+            const { checks } = evalStrength(password);
+            if (!checks.len || !checks.upper || !checks.lower || !checks.num) {
+                showError('Password does not meet the requirements listed above.');
+                return;
+            }
             if (password !== confirmPassword) {
-                errorEl.textContent = 'Passwords do not match';
-                errorEl.style.display = 'block';
+                showError('Passwords do not match.');
                 return;
             }
 
-            errorEl.style.display = 'none';
-            submitBtn.disabled = true;
-            btnText.style.display = 'none';
-            btnLoader.style.display = 'block';
+            setLoading(true);
 
             try {
-                // 1. Register User
-                const registerPayload = {
-                    email: email,
-                    password: password,
-                    full_name: fullName
-                };
+                const registerPayload = { email, password, full_name: fullName, dob };
                 if (phone) registerPayload.phone = phone;
-                if (dob) registerPayload.dob = dob;
 
-                const registerRes = await fetch('/auth/register', {
+                const res = await fetch('/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(registerPayload)
+                    body: JSON.stringify(registerPayload),
                 });
 
-                const registerData = await registerRes.json();
+                const data = await res.json();
 
-                if (!registerRes.ok) {
-                    throw new Error(registerData.detail || 'Registration failed');
+                if (!res.ok) {
+                    throw new Error(data.detail || 'Registration failed. Please try again.');
                 }
 
-                // 3. Post Message to Flutter App if running inside WebView
-                if (window.AuthChannel) {
-                    // For mobile, we might still want to post the register data 
-                    // or let it handle the OTP flow. For now, let's keep the web flow consistent.
-                }
-
-                // Redirect to OTP verification page
-                const token = registerData.verification_token;
+                const token = data.verification_token;
                 window.location.href = `/verify-otp?token=${token}&email=${encodeURIComponent(email)}`;
-
             } catch (err) {
-                errorEl.textContent = err.message;
-                errorEl.style.display = 'block';
-                submitBtn.disabled = false;
-                btnText.style.display = 'block';
-                btnLoader.style.display = 'none';
+                showError(err.message);
+                setLoading(false);
             }
         });
     </script>

@@ -4,6 +4,7 @@ import 'package:app/widgets/custom_button.dart';
 import 'package:app/widgets/custom_input.dart';
 import 'package:app/services/api_service.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -42,6 +43,18 @@ class _LoginPageState extends State<LoginPage> {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const RegisterPage()),
     );
+  }
+
+  Future<void> _openForgotPassword() async {
+    const url = '${ApiService.baseUrl}/forgot-password';
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the password reset page.')),
+      );
+    }
   }
 
   @override
@@ -108,13 +121,33 @@ class _LoginPageState extends State<LoginPage> {
                 onPressed: _handleLogin,
               ),
 
+              // Forgot password link
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _openForgotPassword,
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Forgot Password?',
+                    style: TextStyle(
+                      color: Color(0xFFA3A3A3),
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 20),
               TextButton(
                 onPressed: _navigateToRegister,
                 child: const Text(
                   "Don't have an account? Sign Up",
                   style: TextStyle(
-                    color: Color(0xFFA3A3A3), // Neutral 400
+                    color: Color(0xFFA3A3A3),
                     fontSize: 14,
                   ),
                 ),

@@ -50,15 +50,12 @@ class EmailVerificationService:
 
     async def send_otp_email(self, email: str, otp: str):
         """Send verification email using FastAPI-Mail. Errors are logged, not raised."""
+        html_body = _build_verification_email_html(email, otp)
         message = MessageSchema(
             subject="Verify your VoiceScribe account",
             recipients=[email],
-            body=(
-                f"Your VoiceScribe verification code is: {otp}\n\n"
-                f"This code expires in 10 minutes.\n\n"
-                f"If you did not register for VoiceScribe, please ignore this email."
-            ),
-            subtype=MessageType.plain
+            body=html_body,
+            subtype=MessageType.html,
         )
         try:
             fm = FastMail(conf)
@@ -114,4 +111,103 @@ class EmailVerificationService:
             )
 
 
+
 email_verification_service = EmailVerificationService()
+
+
+# ---------------------------------------------------------------------------
+# Email HTML template
+# ---------------------------------------------------------------------------
+
+def _build_verification_email_html(email: str, otp: str) -> str:
+    """Build a branded HTML email for OTP verification, matching the password reset style."""
+    # Inline microphone SVG as a data URI to avoid external dependencies
+    mic_svg_b64 = (
+        "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0"
+        "PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjZmZmZmZmIj48cGF0aCBkPSJNMTIgMTRj"
+        "MS42NiAwIDMtMS4zNCAzLTNWNWMwLTEuNjYtMS4zNC0zLTMtM1M5IDMuMzQgOSA1djZjMCAxLjY2"
+        "IDEuMzQgMyAzIDN6Ii8+PHBhdGggZD0iTTE3IDExYzAgMi43Ni0yLjI0IDUtNSA1cy01LTIuMjQt"
+        "NS01SDVDMCA1IDMuNTMgMTcuNDMgNiAxNi45MlYyMWgydi0zLjA4YzMuMzktLjQ5IDYtMy4zOSA2"
+        "LTYuOTJoLTJ6Ii8+PC9zdmc+"
+    )
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify your VoiceScribe account</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0a0a0a;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="100%" style="max-width:520px;" cellspacing="0" cellpadding="0" border="0">
+
+          <!-- Header -->
+          <tr>
+            <td align="center" style="padding:32px 0 24px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" width="48" height="48"
+                      style="background:#171717;border:1px solid #262626;border-radius:16px;padding:12px;">
+                    <img src="data:image/svg+xml;base64,{mic_svg_b64}" width="24" height="24" alt="VoiceScribe" style="display:block;">
+                  </td>
+                </tr>
+              </table>
+              <h1 style="margin:16px 0 4px;color:#ffffff;font-size:22px;font-weight:600;letter-spacing:-0.3px;">
+                VoiceScribe
+              </h1>
+              <p style="margin:0;color:#a3a3a3;font-size:13px;">Multilingual Transcription</p>
+            </td>
+          </tr>
+
+          <!-- Card -->
+          <tr>
+            <td style="background:#171717;border:1px solid #262626;border-radius:16px;padding:36px 32px;">
+
+              <h2 style="margin:0 0 8px;color:#ffffff;font-size:18px;font-weight:600;">
+                Verify your email address
+              </h2>
+              <p style="margin:0 0 24px;color:#a3a3a3;font-size:14px;line-height:1.6;">
+                Use the verification code below to confirm your identity and activate your VoiceScribe account.
+              </p>
+
+              <!-- OTP Code -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding:0 0 24px;">
+                    <div style="display:inline-block;padding:20px 36px;background:#0a0a0a;border:1px solid #262626;border-radius:12px;">
+                      <span style="font-size:36px;font-weight:700;color:#ffffff;letter-spacing:0.2em;">{otp}</span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Divider -->
+              <hr style="border:none;border-top:1px solid #262626;margin:0 0 20px;">
+
+              <!-- Expiry note -->
+              <p style="margin:0 0 12px;color:#a3a3a3;font-size:13px;line-height:1.6;">
+                This code expires in <strong style="color:#ffffff;">10 minutes</strong>.
+              </p>
+              <p style="margin:0;color:#a3a3a3;font-size:13px;line-height:1.6;">
+                If you didn't create a VoiceScribe account, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding:24px 0 0;">
+              <p style="margin:0;color:#525252;font-size:12px;">
+                &copy; 2026 VoiceScribe. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""

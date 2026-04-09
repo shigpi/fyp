@@ -8,10 +8,11 @@ from backend.core.config import settings
 from backend.models.organization import Organization, OrgType
 from backend.models.org_member import OrgMember, OrgRole
 from backend.models.user import User
-from backend.schemas.user import UserCreate, UserLogin, Token, UserResponse, EmailVerificationRequest, EmailVerificationVerify
+from backend.schemas.user import UserCreate, UserLogin, Token, UserResponse, EmailVerificationRequest, EmailVerificationVerify, ForgotPasswordRequest, ResetPasswordRequest
 from backend.services.security import limiter, AUTH_LIMIT
 from backend.services.security.service import security_service
 from backend.services.email_verification import email_verification_service
+from backend.services.password_reset import password_reset_service
 
 router = APIRouter()
 
@@ -186,3 +187,68 @@ def resend_verification(
         "message": "Verification OTP sent",
         "verification_token": token,
     }
+
+
+@router.post("/forgot-password")
+@limiter.limit("3/minute")
+def forgot_password(
+    request: Request,
+    body: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(deps.get_db),
+):
+    """
+    Initiate a password reset.
+
+    Always returns a generic success message to prevent email enumeration.
+    The reset email is only sent when the address is registered.
+    Rate-limited to 3/minute to deter spam.
+    """
+    _GENERIC_RESPONSE = {
+        "message": "If that email address is registered, you will receive a password reset link shortly."
+    }
+
+    print(f"[password_reset] forgot-password request for: {body.email}")
+
+    user = db.query(User).filter(User.email == body.email).first()
+    if not user:
+        # Do not reveal that the email does not exist
+        return _GENERIC_RESPONSE
+
+    raw_token = password_reset_service.create_reset_token(body.email, db)
+    background_tasks.add_task(
+        password_reset_service.send_reset_email,
+        body.email,
+        raw_token,
+    )
+    return _GENERIC_RESPONSE
+
+
+@router.post("/reset-password")
+@limiter.limit(AUTH_LIMIT)
+def reset_password(
+    request: Request,
+    body: ResetPasswordRequest,
+    db: Session = Depends(deps.get_db),
+):
+    """
+    Consume a password-reset token and update the user's password.
+
+    Returns clear success or error messages (token invalid, expired, or already used).
+    Token is immediately invalidated on success.
+    """
+    # validate_and_consume_token raises HTTPException on any failure
+    email = password_reset_service.validate_and_consume_token(body.token, db)
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User account not found.",
+        )
+
+    user.hashed_password = security_service.hash_password(body.new_password)
+    db.commit()
+
+    print(f"[password_reset] Password successfully reset for: {email}")
+    return {"message": "Your password has been reset successfully. You can now log in with your new password."}

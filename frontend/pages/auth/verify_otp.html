@@ -324,8 +324,15 @@
                     throw new Error(data.detail || 'Verification failed. Please try again.');
                 }
 
-                showSuccess('Email verified successfully! Redirecting to login...');
-                setTimeout(() => { window.location.href = '/login'; }, 2000);
+                const isApp = urlParams.get('app') === 'flutter';
+                
+                if (isApp) {
+                    showSuccess('Email verified successfully! You may now close this screen.');
+                    setTimeout(() => { if (window.close) window.close(); }, 2000);
+                } else {
+                    showSuccess('Email verified successfully! Redirecting to login...');
+                    setTimeout(() => { window.location.href = '/login'; }, 2000);
+                }
             } catch (err) {
                 showError(err.message);
                 setLoading(false);

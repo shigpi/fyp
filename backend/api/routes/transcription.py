@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
 from datetime import date
+from dateutil.relativedelta import relativedelta
 import os
 import uuid
 
@@ -38,22 +39,38 @@ async def transcribe_audio(
     if not membership:
         raise HTTPException(status_code=403, detail="User is not a member of any organization")
 
-    subscription = db.query(Subscription.plan_id, Subscription.id).filter(
+    subscription = db.query(Subscription).filter(
         Subscription.org_id == membership.org_id,
         Subscription.current_period_end >= date.today(),
     ).first()
     if not subscription:
         raise HTTPException(status_code=403, detail="Organization does not have an active subscription")
 
-    plan_id, subscription_id = subscription
+    plan_id, subscription_id = subscription.plan_id, subscription.id
 
-    minutes_used = (
+    minutes_used = float(
         db.query(SubscriptionUsage.minutes_used)
         .filter(SubscriptionUsage.subscription_id == subscription_id)
         .scalar()
         or 0
     )
-    total_minutes = db.query(Plan.token_quota).filter(Plan.id == plan_id).scalar()
+    monthly_quota = db.query(Plan.token_quota).filter(Plan.id == plan_id).scalar()
+
+    # For yearly plans token_quota is a *per-month* allowance (the same field
+    # used by monthly plans).  Instead of giving the entire year's worth up
+    # front we compute a cumulative cap: (months elapsed + 1) × monthly_quota.
+    # This auto-refreshes the quota every month without a cron job or reset.
+    #
+    # Example: yearly plan, quota=120 min/month.
+    #   Month 1  → allowed 120 min cumulative
+    #   Month 2  → allowed 240 min cumulative (minutes_used carries over)
+    #   ...
+    #   Month 12 → allowed 1440 min cumulative
+    if subscription.type and subscription.type.value == "yearly" and subscription.current_period_start:
+        months_elapsed = relativedelta(date.today(), subscription.current_period_start).months
+        total_minutes = float(monthly_quota) * (months_elapsed + 1)
+    else:
+        total_minutes = float(monthly_quota)
 
     if minutes_used >= total_minutes:
         raise HTTPException(status_code=403, detail="Organization has exceeded its transcription minutes limit")

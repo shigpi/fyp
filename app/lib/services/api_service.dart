@@ -185,9 +185,6 @@ class ApiService {
     
     payload['org_id'] = orgId;
 
-    debugPrint("DEBUG: payload: $payload");
-    debugPrint("DEBUG: token: $token");
-
     final response = await http.post(
       Uri.parse('$baseUrl/users/subscription/esewa'),
       headers: {
@@ -287,20 +284,47 @@ class ApiService {
     }
   }
 
-  Future<void> resendVerificationEmail() async {
+  Future<String?> resendVerificationEmail() async {
     final token = await getToken();
-    if (token == null) return;
+    if (token == null) return null;
     
     try {
-      await http.post(
+      final response = await http.post(
         Uri.parse('$baseUrl/auth/send-email-verification'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['verification_token'] as String?;
+      }
     } catch (_) {
       // Background request, ignore errors
+    }
+    return null;
+  }
+
+  /// Fetches the eSewa SDK credentials from the backend.
+  /// Returns a map with keys: `client_id`, `secret_id`, `environment`.
+  Future<Map<String, dynamic>> getEsewaConfig() async {
+    final token = await getToken();
+    if (token == null) throw ApiException.message('Not authenticated');
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/users/esewa-config'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else {
+      _checkUnauthorized(response.statusCode);
+      throw ApiException(response.statusCode, response.body);
     }
   }
 

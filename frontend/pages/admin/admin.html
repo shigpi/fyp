@@ -1,45 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=2">
+    <title>VoiceScribe - Admin Dashboard</title>
+    <meta name="description" content="VoiceScribe system administration panel.">
+    <link rel="stylesheet" href="/static/css/style.css?v=4">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-
 <body>
-    <div class="container">
-        <aside class="sidebar">
-            <div class="logo">AdminPanel</div>
+<div class="dashboard">
 
-            <!-- ── Email Search ── -->
-            <div class="search-box">
-                <input type="email" id="search-email-input" placeholder="Search by email…" autocomplete="off">
-                <button id="search-btn" class="btn-search">Search</button>
+    <!-- ── Top bar ─────────────────────────────────────────────── -->
+    <div class="top-bar">
+        <!-- Brand -->
+        <a href="/" class="top-bar-brand">
+            <div class="top-bar-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
             </div>
+            <span class="top-bar-name">VoiceScribe</span>
+        </a>
+        <div class="top-bar-divider"></div>
+        <span class="top-bar-section">Admin</span>
 
+        <!-- Global email search -->
+        <form class="top-search-form" id="top-search-form" onsubmit="return false;">
+            <div class="top-search-wrap">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input
+                    type="text"
+                    class="top-search-input"
+                    id="search-email-input"
+                    placeholder="Search by name or email…"
+                    autocomplete="off"
+                >
+            </div>
+            <button type="submit" class="top-search-btn" id="search-btn">Search</button>
+        </form>
+
+        <!-- User info + logout -->
+        <div class="top-bar-user">
+            <span class="top-bar-username" id="current-user-name">Loading…</span>
+            <button class="top-bar-logout" id="logout-btn">Log out</button>
+        </div>
+    </div><!-- /.top-bar -->
+
+    <!-- ── Body ────────────────────────────────────────────────── -->
+    <div class="body-area">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <p class="sidebar-label">Management</p>
             <nav>
                 <ul>
-                    <li><a href="#" class="active" id="nav-users">Users</a></li>
-                    <li><a href="#" id="nav-orgs">Organizations</a></li>
-                    <li><a href="#" id="nav-plans">Plans</a></li>
-                    <li><a href="#" id="nav-subs">Subscriptions</a></li>
-                    <li><a href="#" id="nav-members">Org Members</a></li>
-                    <li><a href="#" id="nav-usage">Sub Usage</a></li>
-                    <li><a href="#" id="nav-search" style="display:none;">Search Results</a></li>
+                    <li>
+                        <a href="#" class="active" id="nav-users">
+                            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            Users
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" id="nav-orgs">
+                            <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                            Organizations
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" id="nav-plans">
+                            <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                            Plans
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" id="nav-subs">
+                            <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                            Subscriptions
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" id="nav-members">
+                            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/><line x1="20" y1="8" x2="20" y2="14"/></svg>
+                            Org Members
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" id="nav-usage">
+                            <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                            Sub Usage
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" id="nav-search" style="display:none;">
+                            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                            Search Results
+                        </a>
+                    </li>
                 </ul>
             </nav>
-            <div class="user-info">
-                <span id="current-user-name">Loading...</span>
-                <button id="logout-btn">Logout</button>
-            </div>
         </aside>
 
+        <!-- Main content -->
         <main class="main-content">
 
-            <!-- ── Users Section ── -->
+            <!-- ── Users ── -->
             <div id="section-users" class="section active">
                 <header>
                     <h1>User Management</h1>
@@ -48,27 +114,25 @@
                         <button id="add-user-btn" class="btn-primary">Add User</button>
                     </div>
                 </header>
-                <div class="content">
-                    <div class="table-container">
-                        <table id="users-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Full Name</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th>Verified</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
+                <div class="table-container">
+                    <table id="users-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Verified</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- ── Organizations Section ── -->
+            <!-- ── Organizations ── -->
             <div id="section-orgs" class="section">
                 <header>
                     <h1>Organization Management</h1>
@@ -77,80 +141,78 @@
                         <button id="add-org-btn" class="btn-primary">Add Organization</button>
                     </div>
                 </header>
-                <div class="content">
-                    <div class="table-container">
-                        <table id="orgs-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Name</th>
-                                    <th>Slug</th>
-                                    <th>Owner</th>
-                                    <th>Type</th>
-                                    <th>Created</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
+                <div class="table-container">
+                    <table id="orgs-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Slug</th>
+                                <th>Owner</th>
+                                <th>Type</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- ── Plans Section ── -->
+            <!-- ── Plans ── -->
             <div id="section-plans" class="section">
                 <header>
                     <h1>Plan Management</h1>
-                    <button id="add-plan-btn" class="btn-primary">Add Plan</button>
-                </header>
-                <div class="content">
-                    <div class="table-container">
-                        <table id="plans-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Name</th>
-                                    <th>Monthly Price</th>
-                                    <th>Yearly Price</th>
-                                    <th>Token Quota</th>
-                                    <th>Max Users</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
+                    <div class="header-actions">
+                        <button id="add-plan-btn" class="btn-primary">Add Plan</button>
                     </div>
+                </header>
+                <div class="table-container">
+                    <table id="plans-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Monthly Price</th>
+                                <th>Yearly Price</th>
+                                <th>Token Quota</th>
+                                <th>Max Users</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- ── Subscriptions Section ── -->
+            <!-- ── Subscriptions ── -->
             <div id="section-subs" class="section">
                 <header>
                     <h1>Subscription Management</h1>
-                    <button id="add-sub-btn" class="btn-primary">Add Subscription</button>
-                </header>
-                <div class="content">
-                    <div class="table-container">
-                        <table id="subs-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Organization</th>
-                                    <th>Plan</th>
-                                    <th>Billing</th>
-                                    <th>Period Start</th>
-                                    <th>Period End</th>
-                                    <th>Cancel?</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
+                    <div class="header-actions">
+                        <button id="add-sub-btn" class="btn-primary">Add Subscription</button>
                     </div>
+                </header>
+                <div class="table-container">
+                    <table id="subs-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Organization</th>
+                                <th>Plan</th>
+                                <th>Billing</th>
+                                <th>Period Start</th>
+                                <th>Period End</th>
+                                <th>Cancel?</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- ── Org Members Section ── -->
+            <!-- ── Org Members ── -->
             <div id="section-members" class="section">
                 <header>
                     <h1>Org Member Management</h1>
@@ -159,27 +221,25 @@
                         <button id="add-member-btn" class="btn-primary">Add Member</button>
                     </div>
                 </header>
-                <div class="content">
-                    <div class="table-container">
-                        <table id="members-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Organization</th>
-                                    <th>User</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Joined</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
+                <div class="table-container">
+                    <table id="members-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Organization</th>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- ── Subscription Usage Section ── -->
+            <!-- ── Subscription Usage ── -->
             <div id="section-usage" class="section">
                 <header>
                     <h1>Subscription Usage</h1>
@@ -188,231 +248,262 @@
                         <button id="add-usage-btn" class="btn-primary">Add Usage Record</button>
                     </div>
                 </header>
-                <div class="content">
-                    <div class="table-container">
-                        <table id="usage-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Organization</th>
-                                    <th>Subscription</th>
-                                    <th>Minutes Used</th>
-                                    <th>Created</th>
-                                    <th>Updated</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
+                <div class="table-container">
+                    <table id="usage-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Organization</th>
+                                <th>Subscription</th>
+                                <th>Minutes Used</th>
+                                <th>Created</th>
+                                <th>Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- ── Search Results Section ── -->
+            <!-- ── Search Results ── -->
             <div id="section-search" class="section">
                 <header>
                     <h1>Search Results <span id="search-query-label" class="search-label"></span></h1>
                 </header>
                 <div id="search-results-container">
-                    <p class="empty-state">Enter an email and press Search.</p>
+                    <p class="empty-state">Enter an email address and press Search.</p>
                 </div>
             </div>
 
         </main>
-    </div>
+    </div><!-- /.body-area -->
+</div><!-- /.dashboard -->
 
-    <!-- ── Modal: User ── -->
-    <div id="user-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" data-modal="user-modal">&times;</span>
-            <h2 id="modal-title">Add User</h2>
-            <form id="user-form">
-                <input type="hidden" id="user-id">
-                <div class="form-group">
-                    <label for="full-name">Full Name</label>
-                    <input type="text" id="full-name" required>
-                </div>
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" required>
-                </div>
-                <div class="form-group">
-                    <label for="phone">Phone</label>
-                    <input type="tel" id="phone">
-                </div>
-                <div class="form-group">
-                    <label for="dob">Date of Birth</label>
-                    <input type="date" id="dob">
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password">
-                    <small id="password-hint" style="display:none;">Leave blank to keep current password</small>
-                </div>
-                <div class="form-group">
-                    <label for="role">Role</label>
-                    <select id="role">
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                        <option value="super_admin">Super Admin</option>
-                    </select>
-                </div>
-                <div class="form-group form-group--inline">
-                    <label for="is-active">Active</label>
-                    <input type="checkbox" id="is-active" checked>
-                </div>
-                <div class="form-group form-group--inline">
-                    <label for="email-verified">Email Verified</label>
-                    <input type="checkbox" id="email-verified">
-                </div>
-                <button type="submit" class="btn-primary">Save</button>
-            </form>
-        </div>
+<!-- ── Modal: User ──────────────────────────────────────────── -->
+<div id="user-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" data-modal="user-modal">&times;</span>
+        <h2 id="modal-title">Add User</h2>
+        <form id="user-form">
+            <input type="hidden" id="user-id">
+            <div class="form-group">
+                <label for="full-name">Full Name</label>
+                <input type="text" id="full-name" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="phone">Phone</label>
+                <input type="tel" id="phone">
+            </div>
+            <div class="form-group">
+                <label for="dob">Date of Birth</label>
+                <input type="date" id="dob">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password">
+                <small id="password-hint" style="display:none;color:var(--muted);font-size:11px;margin-top:4px;display:block;">Leave blank to keep current password</small>
+            </div>
+            <div class="form-group">
+                <label for="role">Role</label>
+                <select id="role">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                    <option value="super_admin">Super Admin</option>
+                </select>
+            </div>
+            <div class="form-group form-group--inline">
+                <label for="is-active">Active</label>
+                <input type="checkbox" id="is-active" checked>
+            </div>
+            <div class="form-group form-group--inline">
+                <label for="email-verified">Email Verified</label>
+                <input type="checkbox" id="email-verified">
+            </div>
+            <button type="submit" class="btn-primary">Save</button>
+        </form>
     </div>
+</div>
 
-    <!-- ── Modal: Organization ── -->
-    <div id="org-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" data-modal="org-modal">&times;</span>
-            <h2 id="org-modal-title">Add Organization</h2>
-            <form id="org-form">
-                <input type="hidden" id="org-id">
-                <div class="form-group">
-                    <label for="org-name">Name</label>
-                    <input type="text" id="org-name" required>
-                </div>
-                <div class="form-group">
-                    <label for="org-type">Type</label>
-                    <select id="org-type">
-                        <option value="individual">Individual</option>
-                        <option value="team">Team</option>
-                    </select>
-                </div>
-                <div class="form-group" id="org-owner-group">
-                    <label for="org-owner">Owner</label>
-                    <select id="org-owner" required></select>
-                </div>
-                <button type="submit" class="btn-primary">Save</button>
-            </form>
-        </div>
+<!-- ── Modal: Organization ──────────────────────────────────── -->
+<div id="org-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" data-modal="org-modal">&times;</span>
+        <h2 id="org-modal-title">Add Organization</h2>
+        <form id="org-form">
+            <input type="hidden" id="org-id">
+            <div class="form-group">
+                <label for="org-name">Name</label>
+                <input type="text" id="org-name" required>
+            </div>
+            <div class="form-group">
+                <label for="org-type">Type</label>
+                <select id="org-type">
+                    <option value="individual">Individual</option>
+                    <option value="team">Team</option>
+                </select>
+            </div>
+            <div class="form-group" id="org-owner-group">
+                <label for="org-owner">Owner</label>
+                <select id="org-owner" required></select>
+            </div>
+            <button type="submit" class="btn-primary">Save</button>
+        </form>
     </div>
+</div>
 
-    <!-- ── Modal: Plan ── -->
-    <div id="plan-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" data-modal="plan-modal">&times;</span>
-            <h2 id="plan-modal-title">Add Plan</h2>
-            <form id="plan-form">
-                <input type="hidden" id="plan-id">
-                <div class="form-group">
-                    <label for="plan-name">Name</label>
-                    <input type="text" id="plan-name" required>
-                </div>
-                <div class="form-group">
-                    <label for="plan-price-month">Monthly Price</label>
-                    <input type="number" id="plan-price-month" step="0.01" value="0" required>
-                </div>
-                <div class="form-group">
-                    <label for="plan-price-year">Yearly Price</label>
-                    <input type="number" id="plan-price-year" step="0.01" value="0" required>
-                </div>
-                <div class="form-group">
-                    <label for="plan-token-quota">Token Quota</label>
-                    <input type="number" id="plan-token-quota" value="0" required>
-                </div>
-                <div class="form-group">
-                    <label for="plan-max-users">Max Users</label>
-                    <input type="number" id="plan-max-users" value="1" required>
-                </div>
-                <button type="submit" class="btn-primary">Save</button>
-            </form>
-        </div>
+<!-- ── Modal: Plan ──────────────────────────────────────────── -->
+<div id="plan-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" data-modal="plan-modal">&times;</span>
+        <h2 id="plan-modal-title">Add Plan</h2>
+        <form id="plan-form">
+            <input type="hidden" id="plan-id">
+            <div class="form-group">
+                <label for="plan-name">Name</label>
+                <input type="text" id="plan-name" required>
+            </div>
+            <div class="form-group">
+                <label for="plan-price-month">Monthly Price</label>
+                <input type="number" id="plan-price-month" step="0.01" value="0" required>
+            </div>
+            <div class="form-group">
+                <label for="plan-price-year">Yearly Price</label>
+                <input type="number" id="plan-price-year" step="0.01" value="0" required>
+            </div>
+            <div class="form-group">
+                <label for="plan-token-quota">Token Quota</label>
+                <input type="number" id="plan-token-quota" value="0" required>
+            </div>
+            <div class="form-group">
+                <label for="plan-max-users">Max Users</label>
+                <input type="number" id="plan-max-users" value="1" required>
+            </div>
+            <button type="submit" class="btn-primary">Save</button>
+        </form>
     </div>
+</div>
 
-    <!-- ── Modal: Subscription ── -->
-    <div id="sub-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" data-modal="sub-modal">&times;</span>
-            <h2 id="sub-modal-title">Add Subscription</h2>
-            <form id="sub-form">
-                <input type="hidden" id="sub-id">
-                <div class="form-group" id="sub-org-group">
-                    <label for="sub-org">Organization</label>
-                    <select id="sub-org" required></select>
-                </div>
-                <div class="form-group" id="sub-plan-group">
-                    <label for="sub-plan">Plan</label>
-                    <select id="sub-plan" required></select>
-                </div>
-                <div class="form-group">
-                    <label for="sub-type">Billing Cycle</label>
-                    <select id="sub-type">
-                        <option value="monthly">Monthly</option>
-                        <option value="yearly">Yearly</option>
-                    </select>
-                </div>
-                <div class="form-group" id="sub-cancel-group" style="display:none;">
-                    <label for="sub-cancel">Cancel at Period End</label>
-                    <input type="checkbox" id="sub-cancel">
-                </div>
-                <button type="submit" class="btn-primary">Save</button>
-            </form>
-        </div>
+<!-- ── Modal: Subscription ──────────────────────────────────── -->
+<div id="sub-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" data-modal="sub-modal">&times;</span>
+        <h2 id="sub-modal-title">Add Subscription</h2>
+        <form id="sub-form">
+            <input type="hidden" id="sub-id">
+            <div class="form-group" id="sub-org-group">
+                <label for="sub-org">Organization</label>
+                <select id="sub-org" required></select>
+            </div>
+            <div class="form-group" id="sub-plan-group">
+                <label for="sub-plan">Plan</label>
+                <select id="sub-plan" required></select>
+            </div>
+            <div class="form-group">
+                <label for="sub-type">Billing Cycle</label>
+                <select id="sub-type">
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
+            </div>
+            <div class="form-group" id="sub-cancel-group" style="display:none;">
+                <label for="sub-cancel">Cancel at Period End</label>
+                <input type="checkbox" id="sub-cancel">
+            </div>
+            <button type="submit" class="btn-primary">Save</button>
+        </form>
     </div>
+</div>
 
-    <!-- ── Modal: Org Member ── -->
-    <div id="member-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" data-modal="member-modal">&times;</span>
-            <h2 id="member-modal-title">Add Org Member</h2>
-            <form id="member-form">
-                <input type="hidden" id="member-id">
-                <div class="form-group" id="member-org-group">
-                    <label for="member-org">Organization</label>
-                    <select id="member-org" required></select>
-                </div>
-                <div class="form-group" id="member-user-group">
-                    <label for="member-user">User</label>
-                    <select id="member-user" required></select>
-                </div>
-                <div class="form-group">
-                    <label for="member-role">Role</label>
-                    <select id="member-role">
-                        <option value="member">Member</option>
-                        <option value="admin">Admin</option>
-                        <option value="owner">Owner</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn-primary">Save</button>
-            </form>
-        </div>
+<!-- ── Modal: Org Member ────────────────────────────────────── -->
+<div id="member-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" data-modal="member-modal">&times;</span>
+        <h2 id="member-modal-title">Add Org Member</h2>
+        <form id="member-form">
+            <input type="hidden" id="member-id">
+            <div class="form-group" id="member-org-group">
+                <label for="member-org">Organization</label>
+                <select id="member-org" required></select>
+            </div>
+            <div class="form-group" id="member-user-group">
+                <label for="member-user">User</label>
+                <select id="member-user" required></select>
+            </div>
+            <div class="form-group">
+                <label for="member-role">Role</label>
+                <select id="member-role">
+                    <option value="member">Member</option>
+                    <option value="admin">Admin</option>
+                    <option value="owner">Owner</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-primary">Save</button>
+        </form>
     </div>
+</div>
 
-    <!-- ── Modal: Subscription Usage ── -->
-    <div id="usage-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" data-modal="usage-modal">&times;</span>
-            <h2 id="usage-modal-title">Add Usage Record</h2>
-            <form id="usage-form">
-                <input type="hidden" id="usage-id">
-                <div class="form-group" id="usage-org-group">
-                    <label for="usage-org">Organization</label>
-                    <select id="usage-org" required></select>
-                </div>
-                <div class="form-group" id="usage-sub-group">
-                    <label for="usage-sub">Subscription</label>
-                    <select id="usage-sub" required></select>
-                </div>
-                <div class="form-group">
-                    <label for="usage-minutes">Minutes Used</label>
-                    <input type="number" id="usage-minutes" step="0.01" value="0" required>
-                </div>
-                <button type="submit" class="btn-primary">Save</button>
-            </form>
-        </div>
+<!-- ── Modal: Subscription Usage ────────────────────────────── -->
+<div id="usage-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" data-modal="usage-modal">&times;</span>
+        <h2 id="usage-modal-title">Add Usage Record</h2>
+        <form id="usage-form">
+            <input type="hidden" id="usage-id">
+            <div class="form-group" id="usage-org-group">
+                <label for="usage-org">Organization</label>
+                <select id="usage-org" required></select>
+            </div>
+            <div class="form-group" id="usage-sub-group">
+                <label for="usage-sub">Subscription</label>
+                <select id="usage-sub" required></select>
+            </div>
+            <div class="form-group">
+                <label for="usage-minutes">Minutes Used</label>
+                <input type="number" id="usage-minutes" step="0.01" value="0" required>
+            </div>
+            <button type="submit" class="btn-primary">Save</button>
+        </form>
     </div>
+</div>
 
-    <script src="/static/js/app.js?v=2"></script>
+<script src="/static/js/app.js?v=3"></script>
+
+<script>
+    // ── Modal open/close via new CSS class ──────────────────────
+    // (Backwards-compatible patch: old JS sets modal.style.display='block',
+    //  new CSS uses .open class for flex centering. Bridge both.)
+    document.querySelectorAll('.close').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const modal = document.getElementById(btn.dataset.modal);
+            if (modal) { modal.style.display = ''; modal.classList.remove('open'); }
+        });
+    });
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', e => {
+            if (e.target === modal) { modal.style.display = ''; modal.classList.remove('open'); }
+        });
+    });
+
+    // Patch: make openModal() also add .open class
+    const _origOpen = window.openModal;
+    function patchModalOpen() {
+        document.querySelectorAll('.modal').forEach(modal => {
+            const obs = new MutationObserver(() => {
+                if (modal.style.display && modal.style.display !== 'none') {
+                    modal.classList.add('open');
+                } else {
+                    modal.classList.remove('open');
+                }
+            });
+            obs.observe(modal, { attributes: true, attributeFilter: ['style'] });
+        });
+    }
+    patchModalOpen();
+</script>
 </body>
-
 </html>

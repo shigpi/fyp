@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from backend.api import deps
+from backend.core.config import settings
 from backend.models.org_member import OrgMember
 from backend.models.organization import Organization
 from backend.models.plan import Plan
@@ -146,6 +147,31 @@ def read_most_popular_plan(
     return {"plan_id": None}
 
 
+@router.get("/esewa-config")
+@limiter.limit(API_LIMIT)
+def get_esewa_config(
+    request: Request,
+    current_user: User = Depends(deps.get_current_user),
+):
+    """Return the eSewa SDK credentials needed by the Flutter client.
+    The secret key used for server-side payment *verification* is never
+    exposed here — only the client-facing SDK pair is returned."""
+    client_id = settings.ESEWA_CLIENT_ID
+    secret_id = settings.ESEWA_SECRET_KEY
+
+    if not client_id or not secret_id:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="eSewa configuration is not available on the server.",
+        )
+
+    return {
+        "client_id": client_id,
+        "secret_id": secret_id,
+        "environment": "test",  # Switch to 'live' when moving to production
+    }
+
+
 @router.post("/subscription/esewa")
 @limiter.limit(API_LIMIT)
 def verify_esewa_payment(
@@ -204,11 +230,9 @@ def verify_esewa_payment(
         "productId": payment_data.product_id,
         "amount": payment_data.total_amount,
     }
-    ESEWA_CLIENT_ID = os.getenv("ESEWA_CLIENT_ID")
-    ESEWA_SECRET_KEY = os.getenv("ESEWA_SECRET_KEY")
     headers = {
-        "merchantId": ESEWA_CLIENT_ID,
-        "merchantSecret": ESEWA_SECRET_KEY,
+        "merchantId": settings.ESEWA_CLIENT_ID,
+        "merchantSecret": settings.ESEWA_SECRET_KEY,
         "Content-Type": "application/json",
     }
     try:
@@ -273,12 +297,21 @@ def verify_esewa_payment(
 
     db.flush()
 
-    subscription_usage = SubscriptionUsage(
-        org_id=payment_data.org_id,
-        subscription_id=subscription.id,
-        minutes_used=0,
+    existing_usage = (
+        db.query(SubscriptionUsage)
+        .filter(SubscriptionUsage.subscription_id == subscription.id)
+        .first()
     )
-    db.add(subscription_usage)
+    if existing_usage:
+        existing_usage.minutes_used = 0
+    else:
+        subscription_usage = SubscriptionUsage(
+            org_id=payment_data.org_id,
+            subscription_id=subscription.id,
+            minutes_used=0,
+        )
+        db.add(subscription_usage)
+
     db.commit()
     db.refresh(subscription)
 

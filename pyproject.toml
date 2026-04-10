@@ -27,6 +27,7 @@ dependencies = [
     "bleach>=6.0.0",
     "fastapi-mail>=1.6.2",
     "cryptography>=46.0.3",
+    "python-dateutil==2.8.2",
 ]
 
 [dependency-groups]

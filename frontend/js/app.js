@@ -102,25 +102,23 @@ function logout() {
     window.location.href = '/login';
 }
 
-// ── Email Search ──────────────────────────────────────────
-const searchEmailInput = document.getElementById('search-email-input');
+// ── Global Search (name or email) ────────────────────────
+const searchQueryInput = document.getElementById('search-email-input');
 const searchBtn = document.getElementById('search-btn');
-searchBtn.addEventListener('click', () => doEmailSearch());
-searchEmailInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doEmailSearch(); });
+searchBtn.addEventListener('click', () => doSearch());
+searchQueryInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
 
-async function doEmailSearch() {
-    const email = searchEmailInput.value.trim();
-    if (!email) return;
+async function doSearch() {
+    const query = searchQueryInput.value.trim();
+    if (!query) return;
     try {
-        const res = await fetch(`${API_URL}/admin/search?email=${encodeURIComponent(email)}`, {
+        const res = await fetch(`${API_URL}/admin/search?query=${encodeURIComponent(query)}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Search failed');
         const data = await res.json();
-        // Render results first, THEN switch section so the DOM is ready
         renderSearchResults(data);
         navLinks.search.style.display = 'block';
-        // Force repaint before switching
         requestAnimationFrame(() => switchSection('search'));
     } catch (err) { alert(err.message); }
 }
@@ -200,10 +198,13 @@ const userForm = document.getElementById('user-form');
 document.getElementById('add-user-btn').addEventListener('click', () => openUserModal());
 userForm.addEventListener('submit', handleUserSubmit);
 
-// Live filter
+// Live filter — matches name OR email
 document.getElementById('filter-users').addEventListener('input', (e) => {
     const q = e.target.value.toLowerCase();
-    renderUsers(allUsers.filter(u => u.email.toLowerCase().includes(q)));
+    renderUsers(allUsers.filter(u =>
+        (u.email || '').toLowerCase().includes(q) ||
+        (u.full_name || '').toLowerCase().includes(q)
+    ));
 });
 
 async function fetchUsers() {

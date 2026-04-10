@@ -695,20 +695,27 @@ def delete_subscription_usage(
     return data
 
 
-# ── Global Email Search ────────────────────────────────────
+# ── Global Search (by name or email) ─────────────────────
 
 @router.get("/search")
 @limiter.limit(API_LIMIT)
-def search_by_email(
+def search_users(
     request: Request,
-    email: str = Query(..., min_length=1, description="Email address (full or partial) to search"),
+    query: Optional[str] = Query(None, min_length=1, description="Name or email to search"),
+    email: Optional[str] = Query(None, description="Alias for query (legacy)"),
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin),
 ):
-    """Cross-table search: finds users matching the email, then returns all
+    """Cross-table search: finds users matching name or email, then returns all
     associated organizations, memberships, subscriptions, and usage records."""
-    pattern = f"%{email.lower()}%"
-    matched_users = db.query(User).filter(User.email.ilike(pattern)).all()
+    term = (query or email or "").strip()
+    if not term:
+        raise HTTPException(status_code=400, detail="query parameter is required")
+    pattern = f"%{term.lower()}%"
+    from sqlalchemy import or_
+    matched_users = db.query(User).filter(
+        or_(User.email.ilike(pattern), User.full_name.ilike(pattern))
+    ).all()
 
     user_ids = [u.id for u in matched_users]
 
@@ -794,7 +801,7 @@ def search_by_email(
         })
 
     return {
-        "query": email,
+        "query": term,
         "users": users_data,
         "organizations": orgs_data,
         "memberships": members,

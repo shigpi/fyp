@@ -156,6 +156,11 @@ async def dashboard_page():
     return FileResponse("frontend/pages/admin/admin.html")
 
 
+@app.get("/admin")
+async def admin_page():
+    return FileResponse("frontend/pages/admin/admin.html")
+
+
 @app.get("/organization")
 async def organization_page():
     return FileResponse("frontend/pages/org/organization.html")

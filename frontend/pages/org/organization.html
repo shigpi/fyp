@@ -1,87 +1,243 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Organization Dashboard - VoiceScribe</title>
+    <title>VoiceScribe - Organization Dashboard</title>
+    <meta name="description" content="Manage your VoiceScribe team organization.">
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-
 <body>
-    <div class="container">
-        <aside class="sidebar">
-            <div class="logo">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="background:#171717; padding:4px; border-radius:6px; border:1px solid #262626; vertical-align: middle; margin-right: 8px;"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-                Team Org
+<div class="dashboard">
+
+    <!-- ── Top bar ─────────────────────────────────────────────── -->
+    <div class="top-bar">
+        <!-- Brand -->
+        <a href="/" class="top-bar-brand">
+            <div class="top-bar-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
             </div>
+            <span class="top-bar-name">VoiceScribe</span>
+        </a>
+        <div class="top-bar-divider"></div>
+        <span class="top-bar-section" id="org-name-label">Organization</span>
+
+        <!-- Member search -->
+        <form class="top-search-form" id="member-search-form" onsubmit="return false;">
+            <div class="top-search-wrap">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input
+                    type="text"
+                    class="top-search-input"
+                    id="member-search-input"
+                    placeholder="Search members by name or email…"
+                    autocomplete="off"
+                >
+            </div>
+            <button type="submit" class="top-search-btn" id="member-search-btn">Search</button>
+        </form>
+
+        <!-- User info + logout -->
+        <div class="top-bar-user">
+            <div style="text-align:right;flex-shrink:0;">
+                <span class="top-bar-username" id="current-user-name">Loading…</span>
+                <span style="display:block;font-size:11px;color:var(--subtle);" id="current-org-role">Loading role…</span>
+            </div>
+            <button class="top-bar-logout" id="logout-btn">Log out</button>
+        </div>
+    </div><!-- /.top-bar -->
+
+    <!-- ── Body ────────────────────────────────────────────────── -->
+    <div class="body-area">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <p class="sidebar-label">Team</p>
             <nav>
                 <ul>
-                    <li><a href="#" class="active" id="nav-members">Members</a></li>
+                    <li>
+                        <a href="#" class="active" id="nav-members">
+                            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            Members
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" id="nav-search-results" style="display:none;">
+                            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                            Search Results
+                        </a>
+                    </li>
                 </ul>
             </nav>
-            <div class="user-info">
-                <span id="current-user-name">Loading...</span>
-                <span id="current-org-role" style="font-size: 0.75rem; color: var(--text-light); display: block; margin-bottom: 0.5rem;">Loading role...</span>
-                <button id="logout-btn">Logout</button>
-            </div>
         </aside>
-        
+
+        <!-- Main content -->
         <main class="main-content">
+
+            <!-- ── Members section ── -->
             <div id="section-members" class="section active">
                 <header>
                     <h1>Team Members</h1>
-                    <button id="add-member-btn" class="btn-primary">Add Member</button>
-                </header>
-                <div class="content">
-                    <div class="table-container">
-                        <table id="members-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Joined</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
+                    <div class="header-actions">
+                        <input type="text" id="filter-members" class="inline-filter" placeholder="Filter by name or email…">
+                        <button id="add-member-btn" class="btn-primary">Add Member</button>
                     </div>
+                </header>
+                <div class="table-container">
+                    <table id="members-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
+
+            <!-- ── Search results section ── -->
+            <div id="section-search-results" class="section">
+                <header>
+                    <h1>
+                        Search Results
+                        <span id="search-result-label" style="font-size:18px;font-weight:400;color:var(--muted);"></span>
+                    </h1>
+                </header>
+                <div id="search-results-container">
+                    <p class="empty-state">Search results will appear here.</p>
+                </div>
+            </div>
+
         </main>
+    </div><!-- /.body-area -->
+</div><!-- /.dashboard -->
+
+<!-- ── Modal: Add / Edit Member ────────────────────────────── -->
+<div id="member-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" data-modal="member-modal">&times;</span>
+        <h2 id="modal-title">Add Member</h2>
+        <form id="member-form">
+            <input type="hidden" id="member-id">
+
+            <div class="form-group" id="user-id-group">
+                <label for="user-id">User ID</label>
+                <input type="number" id="user-id" required>
+                <small style="color:var(--muted);font-size:11px;margin-top:4px;display:block;">
+                    Enter the numeric ID of the user to add.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="role">Role</label>
+                <select id="role">
+                    <option value="member">Member</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-primary">Save Member</button>
+        </form>
     </div>
+</div>
 
-    <!-- ── Modal: Member ── -->
-    <div id="member-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" data-modal="member-modal">&times;</span>
-            <h2 id="modal-title">Add Member</h2>
-            <form id="member-form">
-                <input type="hidden" id="member-id">
-                
-                <div class="form-group" id="user-id-group">
-                    <label for="user-id">User ID to Add (Temporary UI)</label>
-                    <input type="number" id="user-id" required>
-                    <small style="color: var(--text-light);">Enter the numeric ID of the user you want to add.</small>
-                </div>
+<script src="/static/js/organization.js"></script>
 
-                <div class="form-group">
-                    <label for="role">Role</label>
-                    <select id="role">
-                        <option value="member">Member</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                </div>
-                
-                <button type="submit" class="btn-primary">Save Member</button>
-            </form>
-        </div>
-    </div>
+<script>
+    // ── Live inline filter ──────────────────────────────────────
+    const filterInput = document.getElementById('filter-members');
+    if (filterInput) {
+        filterInput.addEventListener('input', () => {
+            const q = filterInput.value.toLowerCase();
+            const rows = document.querySelectorAll('#members-table tbody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(q) ? '' : 'none';
+            });
+        });
+    }
 
-    <script src="/static/js/organization.js"></script>
+    // ── Top-bar member search ───────────────────────────────────
+    const memberSearchForm  = document.getElementById('member-search-form');
+    const memberSearchInput = document.getElementById('member-search-input');
+    const searchSection     = document.getElementById('section-search-results');
+    const membersSection    = document.getElementById('section-members');
+    const navSearchResults  = document.getElementById('nav-search-results');
+    const searchLabel       = document.getElementById('search-result-label');
+    const resultsContainer  = document.getElementById('search-results-container');
+
+    function activateSection(sectionEl) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+        sectionEl.classList.add('active');
+    }
+
+    if (memberSearchForm) {
+        memberSearchForm.addEventListener('submit', () => {
+            const q = memberSearchInput.value.trim().toLowerCase();
+            if (!q) return;
+
+            navSearchResults.style.display = '';
+            navSearchResults.classList.add('active');
+            activateSection(searchSection);
+            searchLabel.textContent = `for "${memberSearchInput.value.trim()}"`;
+
+            // Search across the rendered members table
+            const rows = Array.from(document.querySelectorAll('#members-table tbody tr'));
+            const matches = rows.filter(row => row.textContent.toLowerCase().includes(q));
+
+            if (matches.length === 0) {
+                resultsContainer.innerHTML = '<p class="empty-state">No members matched your search.</p>';
+            } else {
+                // Clone matching rows into a result table
+                resultsContainer.innerHTML = `
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="search-result-tbody"></tbody>
+                        </table>
+                    </div>`;
+                const tbody = document.getElementById('search-result-tbody');
+                matches.forEach(row => tbody.appendChild(row.cloneNode(true)));
+            }
+        });
+    }
+
+    // ── Modal close handling ────────────────────────────────────
+    document.querySelectorAll('.close').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const modal = document.getElementById(btn.dataset.modal);
+            if (modal) { modal.style.display = ''; modal.classList.remove('open'); }
+        });
+    });
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', e => {
+            if (e.target === modal) { modal.style.display = ''; modal.classList.remove('open'); }
+        });
+    });
+
+    // Bridge old style.display='block' calls to new .open class
+    document.querySelectorAll('.modal').forEach(modal => {
+        new MutationObserver(() => {
+            if (modal.style.display && modal.style.display !== 'none') {
+                modal.classList.add('open');
+            } else {
+                modal.classList.remove('open');
+            }
+        }).observe(modal, { attributes: true, attributeFilter: ['style'] });
+    });
+</script>
 </body>
-
 </html>

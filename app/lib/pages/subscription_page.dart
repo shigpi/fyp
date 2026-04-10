@@ -71,6 +71,30 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
       return;
     }
 
+    // Fetch eSewa SDK credentials securely from the backend
+    final Map<String, dynamic> esewaConfig;
+    try {
+      esewaConfig = await ApiService().getEsewaConfig();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load payment config: $e')),
+      );
+      return;
+    }
+
+    final String clientId = esewaConfig['client_id'] ?? '';
+    final String secretId = esewaConfig['secret_id'] ?? '';
+    final bool isTest = (esewaConfig['environment'] ?? 'test') == 'test';
+
+    if (clientId.isEmpty || secretId.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment configuration unavailable. Please try again later.')),
+      );
+      return;
+    }
+
     try {
       // Prepare price safely
       final rawPrice = _isYearly ? plan['price_year'] : plan['price_month'];
@@ -82,11 +106,9 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
 
       EsewaFlutterSdk.initPayment(
         esewaConfig: EsewaConfig(
-          clientId:
-              'JB0BBQ4aD0UqIThFJwAKBgAXEUkEGQUBBAwdOgABHD4DChwUAB0R',
-          secretId:
-              'BhwIWQQADhIYSxILExMcAgFXFhcOBwAKBgAXEQ==',
-          environment: Environment.test, // Use production only for live
+          clientId: clientId,
+          secretId: secretId,
+          environment: isTest ? Environment.test : Environment.live,
         ),
         esewaPayment: EsewaPayment(
           productId: uniqueProductId,
@@ -218,10 +240,17 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                       textColor: Colors.black,
                       onPressed: () async {
                         try {
-                          await ApiService().resendVerificationEmail();
-                          final Uri url = Uri.parse('${ApiService.baseUrl}/verify-otp');
-                          if (!await launchUrl(url, mode: LaunchMode.inAppWebView)) {
-                            debugPrint('Could not launch $url');
+                          final verificationToken = await ApiService().resendVerificationEmail();
+                          if (verificationToken != null) {
+                            final Uri url = Uri.parse('${ApiService.baseUrl}/verify-otp?token=$verificationToken&app=flutter');
+                            if (!await launchUrl(url, mode: LaunchMode.inAppWebView)) {
+                              debugPrint('Could not launch $url');
+                            }
+                          } else {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Failed to retrieve verification token')),
+                            );
                           }
                         } catch (e) {
                           if (!mounted) return;

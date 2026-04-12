@@ -236,7 +236,7 @@ def verify_esewa_payment(
         "Content-Type": "application/json",
     }
     try:
-        resp = httpx.get(esewa_verify_url, params=verify_params, headers=headers, timeout=10.0)
+        resp = httpx.get(esewa_verify_url, params=verify_params, headers=headers, timeout=30.0)
         resp.raise_for_status()
 
         if "application/json" not in resp.headers.get("content-type", ""):

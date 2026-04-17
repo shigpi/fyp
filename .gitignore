@@ -28,7 +28,7 @@ venv/
 /dummy.wav
 /reproduce_issue.py
 
-
+backend/cleanup_duplicate_usage.py
 backend/debug_init.py
 backend/reset_db.py
 backend/seed_admin.py

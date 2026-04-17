@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from decimal import Decimal
 
 # -- Plan Schemas --
@@ -12,9 +12,7 @@ class PlanBase(BaseModel):
 
 class PlanResponse(PlanBase):
     id: int
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # -- Admin Plan Schemas --
 class AdminPlanCreate(BaseModel):

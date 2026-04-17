@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,8 +35,7 @@ class SubscriptionUsageResponse(SubscriptionUsageBase):
             logger.error(f"SubscriptionUsageResponse: Usage ID {obj_id} has null org_id or subscription_id")
         return data
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AdminSubscriptionUsageCreate(BaseModel):

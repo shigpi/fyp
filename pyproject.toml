@@ -40,3 +40,13 @@ dev = [
     "httpx",
     "pytest-asyncio>=1.3.0",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+filterwarnings = [
+    # Third-party libraries — cannot fix in our code
+    "ignore:'aifc' is deprecated:DeprecationWarning:audioread",
+    "ignore:'audioop' is deprecated:DeprecationWarning:audioread",
+    "ignore:'sunau' is deprecated:DeprecationWarning:audioread",
+    "ignore:datetime.datetime.utcfromtimestamp:DeprecationWarning:dateutil",
+]

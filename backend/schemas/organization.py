@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import datetime
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 import logging
 
 logger = logging.getLogger(__name__)
@@ -42,8 +42,7 @@ class OrganizationResponse(OrganizationBase):
             logger.error(f"OrganizationResponse: Organization ID {obj_id} has a null or missing owner_id")
         return data
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # -- Admin Organisation Schemas --
@@ -94,8 +93,7 @@ class OrgMemberResponse(OrgMemberBase):
             logger.error(f"OrgMemberResponse: OrgMember ID {obj_id} has null org_id or user_id")
         return data
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AdminOrgMemberCreate(BaseModel):

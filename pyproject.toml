@@ -28,6 +28,9 @@ dependencies = [
     "fastapi-mail>=1.6.2",
     "cryptography>=46.0.3",
     "python-dateutil==2.8.2",
+    # AWS SageMaker
+    "boto3>=1.35.0",
+    "sagemaker>=2.200.0,<3.0.0",
 ]
 
 [dependency-groups]

@@ -15,7 +15,7 @@ const API_URL = 'https://um90p4chb0.execute-api.ap-south-1.amazonaws.com/prod';
 // ── Site Navigation ──────────────────────────────────────────────────────────
 // Base path for the site on GitHub Pages (e.g., /fyp/frontend)
 // Set to '' for local dev or root-level hosting.
-const SITE_BASE = '/fyp/frontend';
+const SITE_BASE = '/fyp';
 
 // Page paths (used by JS redirects)
 const PAGES = {

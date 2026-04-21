@@ -1,4 +1,4 @@
-const API_URL = '';
+// API_URL is defined in config.js (loaded before this script)
 const loginForm = document.getElementById('login-form');
 
 loginForm.addEventListener('submit', async (e) => {
@@ -29,7 +29,7 @@ loginForm.addEventListener('submit', async (e) => {
 
         // Redirect logic based on role
         if (userRole === 'super_admin' || userRole === 'admin') {
-            window.location.href = '/dashboard';
+            window.location.href = PAGES.admin;
         } else {
             // For regular users, we need to check if they are owner/admin of a TEAM org.
             // Let's do a quick fetch to see their org memberships.
@@ -47,9 +47,9 @@ loginForm.addEventListener('submit', async (e) => {
             }
 
             if (isTeamAdmin) {
-                window.location.href = '/organization';
+                window.location.href = PAGES.organization;
             } else {
-                window.location.href = '/app-store';
+                window.location.href = PAGES.appStore;
             }
         }
     } catch (error) {

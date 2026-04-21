@@ -225,11 +225,11 @@
 
     <!-- Top nav -->
     <nav class="top-nav">
-        <a href="/" class="nav-home">
+        <a href="../../index.html" class="nav-home">
             <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back to Home
         </a>
-        <a href="/" class="nav-brand">
+        <a href="../../index.html" class="nav-brand">
             <div class="nav-brand-icon">
                 <svg viewBox="0 0 24 24">
                     <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
@@ -280,7 +280,7 @@
                     </button>
                 </div>
                 <div class="forgot-row">
-                    <a href="/forgot-password">Forgot password?</a>
+                    <a href="../auth/forgot_password.html">Forgot password?</a>
                 </div>
                 <button type="submit" class="btn" id="submitBtn">
                     <span id="btnText">Log In</span>
@@ -289,10 +289,11 @@
             </form>
 
             <div class="divider-row"><hr><span>or</span><hr></div>
-            <p class="signup-row">Don't have an account? <a href="/register">Sign up for free</a></p>
+            <p class="signup-row">Don't have an account? <a href="../auth/register.html">Sign up for free</a></p>
         </div>
     </div>
 
+<script src="../../js/config.js"></script>
 <script>
     const loginForm  = document.getElementById('loginForm');
     const errorAlert = document.getElementById('errorAlert');
@@ -332,7 +333,7 @@
         setLoading(true);
 
         try {
-            const res = await fetch('/auth/login', {
+            const res = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
@@ -348,9 +349,9 @@
 
             const role = data.user?.role;
             if (role === 'super_admin' || role === 'admin') {
-                window.location.href = '/admin';
+                window.location.href = PAGES.admin;
             } else {
-                const orgsRes = await fetch('/users/me/organizations', {
+                const orgsRes = await fetch(`${API_URL}/users/me/organizations`, {
                     headers: { 'Authorization': `Bearer ${data.access_token}` }
                 });
                 let isTeamAdmin = false;

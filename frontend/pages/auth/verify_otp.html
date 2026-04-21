@@ -204,7 +204,7 @@
             <button class="resend-btn" id="resendBtn">Resend</button>
         </p>
 
-        <a href="/register" class="back-link">
+        <a href="register.html" class="back-link">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M19 12H5M12 5l-7 7 7 7"/>
             </svg>
@@ -212,6 +212,7 @@
         </a>
     </div>
 
+    <script src="../../js/config.js"></script>
     <script>
         const otpInputs  = document.querySelectorAll('.otp-input');
         const otpForm    = document.getElementById('otpForm');
@@ -312,7 +313,7 @@
             setLoading(true);
 
             try {
-                const res = await fetch('/auth/verify-email', {
+                const res = await fetch(`${API_URL}/auth/verify-email`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: verificationToken, otp }),
@@ -331,7 +332,7 @@
                     setTimeout(() => { if (window.close) window.close(); }, 2000);
                 } else {
                     showSuccess('Email verified successfully! Redirecting to login...');
-                    setTimeout(() => { window.location.href = '/login'; }, 2000);
+                    setTimeout(() => { window.location.href = PAGES.login; }, 2000);
                 }
             } catch (err) {
                 showError(err.message);
@@ -344,7 +345,7 @@
             clearMessages();
 
             try {
-                const res = await fetch('/auth/resend-verification', {
+                const res = await fetch(`${API_URL}/auth/resend-verification`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email }),

@@ -1,4 +1,4 @@
-const API_URL = '';
+// API_URL is defined in config.js (loaded before this script)
 let currentUser = null;
 let token = localStorage.getItem('token');
 let allUsers = [];
@@ -73,7 +73,7 @@ logoutBtn.addEventListener('click', logout);
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-    if (!token) { window.location.href = '/login'; return; }
+    if (!token) { window.location.href = PAGES.login; return; }
     try {
         await fetchCurrentUser();
         await fetchUsers();
@@ -99,7 +99,7 @@ async function fetchCurrentUser() {
 
 function logout() {
     localStorage.removeItem('token');
-    window.location.href = '/login';
+    window.location.href = PAGES.login;
 }
 
 // ── Global Search (name or email) ────────────────────────

@@ -1,4 +1,4 @@
-const API_URL = '';
+// API_URL is defined in config.js (loaded before this script)
 const token = localStorage.getItem('token');
 
 // Elements
@@ -32,14 +32,14 @@ addMemberBtn.addEventListener('click', () => openMemberModal());
 memberForm.addEventListener('submit', handleMemberSubmit);
 
 async function init() {
-    if (!token) { window.location.href = '/login'; return; }
+    if (!token) { window.location.href = PAGES.login; return; }
     try {
         await fetchCurrentUserAndOrg();
         if (targetOrgId) {
             await fetchMembers();
         } else {
             alert('You are not a part of any team organization.');
-            window.location.href = '/app-store';
+            window.location.href = PAGES.appStore;
         }
     } catch (error) {
         console.error('Init error:', error);
@@ -200,5 +200,5 @@ async function handleMemberSubmit(e) {
 
 function logout() {
     localStorage.removeItem('token');
-    window.location.href = '/login';
+    window.location.href = PAGES.login;
 }

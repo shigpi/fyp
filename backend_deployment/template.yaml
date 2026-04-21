@@ -1,0 +1,161 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: VoiceScribe FastAPI backend on AWS Lambda behind API Gateway
+
+# ── Parameters ─────────────────────────────────────────────────────────────────
+Parameters:
+  # Database
+  PostgresUser:
+    Type: String
+    NoEcho: true
+  PostgresPassword:
+    Type: String
+    NoEcho: true
+  PostgresServer:
+    Type: String
+  PostgresPort:
+    Type: String
+    Default: "5432"
+  PostgresDb:
+    Type: String
+
+  # JWT
+  JwtPrivateKeyB64:
+    Type: String
+    NoEcho: true
+  JwtPublicKeyB64:
+    Type: String
+    NoEcho: true
+
+  # SageMaker
+  TranscriptionEndpointName:
+    Type: String
+    Default: voicescribe-whisper-endpoint
+  TransliterationEndpointName:
+    Type: String
+    Default: voicescribe-transliteration-endpoint
+
+  # Mail
+  MailUsername:
+    Type: String
+    Default: ""
+  MailPassword:
+    Type: String
+    NoEcho: true
+    Default: ""
+  MailFrom:
+    Type: String
+    Default: "no-reply@voicescribe.com"
+  MailServer:
+    Type: String
+    Default: "smtp.gmail.com"
+
+  # eSewa
+  EsewaClientId:
+    Type: String
+    Default: ""
+  EsewaSecretKey:
+    Type: String
+    NoEcho: true
+    Default: ""
+
+  # CORS
+  AllowedOrigins:
+    Type: String
+    Default: "*"
+
+  # VPC (required — RDS is in a private VPC)
+  SubnetIds:
+    Type: CommaDelimitedList
+    Description: Private subnet IDs for Lambda (must route to NAT Gateway for internet)
+  SecurityGroupIds:
+    Type: CommaDelimitedList
+    Description: Security group IDs allowing outbound to RDS and HTTPS
+
+# ── Globals ────────────────────────────────────────────────────────────────────
+Globals:
+  Function:
+    Timeout: 300
+    MemorySize: 512
+    Runtime: python3.12
+
+# ── Resources ──────────────────────────────────────────────────────────────────
+Resources:
+
+  VoiceScribeApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: prod
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - "*"
+        AllowHeaders:
+          - "*"
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 50
+        ThrottlingRateLimit: 100
+
+  VoiceScribeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: voicescribe-backend
+      Handler: lambda_handler.handler
+      CodeUri: .
+      Description: VoiceScribe FastAPI backend wrapped with Mangum
+
+      VpcConfig:
+        SubnetIds: !Ref SubnetIds
+        SecurityGroupIds: !Ref SecurityGroupIds
+
+      Environment:
+        Variables:
+          POSTGRES_USER: !Ref PostgresUser
+          POSTGRES_PASSWORD: !Ref PostgresPassword
+          POSTGRES_SERVER: !Ref PostgresServer
+          POSTGRES_PORT: !Ref PostgresPort
+          POSTGRES_DB: !Ref PostgresDb
+          JWT_PRIVATE_KEY_B64: !Ref JwtPrivateKeyB64
+          JWT_PUBLIC_KEY_B64: !Ref JwtPublicKeyB64
+          TRANSCRIPTION_ENDPOINT_NAME: !Ref TranscriptionEndpointName
+          TRANSLITERATION_ENDPOINT_NAME: !Ref TransliterationEndpointName
+          MAIL_USERNAME: !Ref MailUsername
+          MAIL_PASSWORD: !Ref MailPassword
+          MAIL_FROM: !Ref MailFrom
+          MAIL_SERVER: !Ref MailServer
+          ESEWA_CLIENT_ID: !Ref EsewaClientId
+          ESEWA_SECRET_KEY: !Ref EsewaSecretKey
+          ALLOWED_ORIGINS: !Ref AllowedOrigins
+
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - sagemaker:InvokeEndpoint
+              Resource: "*"
+        - VPCAccessPolicy: {}
+
+      Events:
+        ApiCatchAll:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref VoiceScribeApi
+            Path: /{proxy+}
+            Method: ANY
+        ApiRoot:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref VoiceScribeApi
+            Path: /
+            Method: ANY
+
+# ── Outputs ────────────────────────────────────────────────────────────────────
+Outputs:
+  ApiUrl:
+    Description: API Gateway URL
+    Value: !Sub "https://${VoiceScribeApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
+  FunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt VoiceScribeFunction.Arn

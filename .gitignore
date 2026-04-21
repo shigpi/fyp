@@ -27,6 +27,7 @@ venv/
 /download_small.py
 /dummy.wav
 /reproduce_issue.py
+/upload_transliteration_model.py
 
 backend/cleanup_duplicate_usage.py
 backend/debug_init.py

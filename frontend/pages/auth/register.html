@@ -257,7 +257,7 @@
 <body>
 <div class="page">
     <nav class="top-bar">
-        <a href="/" class="home-link">
+        <a href="../../index.html" class="home-link">
             <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back to Home
         </a>
@@ -332,7 +332,7 @@
             </button>
         </form>
 
-        <a href="/login" class="back-link">
+        <a href="../org/login.html" class="back-link">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M19 12H5M12 5l-7 7 7 7"/>
             </svg>
@@ -340,6 +340,7 @@
         </a>
     </div>
 
+    <script src="../../js/config.js"></script>
     <script>
         const registerForm   = document.getElementById('registerForm');
         const errorAlert     = document.getElementById('errorAlert');
@@ -455,7 +456,7 @@
                 const registerPayload = { email, password, full_name: fullName, dob };
                 if (phone) registerPayload.phone = phone;
 
-                const res = await fetch('/auth/register', {
+                const res = await fetch(`${API_URL}/auth/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(registerPayload),
@@ -468,7 +469,7 @@
                 }
 
                 const token = data.verification_token;
-                window.location.href = `/verify-otp?token=${token}&email=${encodeURIComponent(email)}`;
+                window.location.href = `verify_otp.html?token=${token}&email=${encodeURIComponent(email)}`;
             } catch (err) {
                 showError(err.message);
                 setLoading(false);

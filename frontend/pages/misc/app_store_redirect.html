@@ -161,10 +161,11 @@
         <button class="logout-link" onclick="logout()">Log out instead</button>
     </div>
 
+    <script src="../../js/config.js"></script>
     <script>
         function logout() {
             localStorage.removeItem('token');
-            window.location.href = '/login';
+            window.location.href = PAGES.login;
         }
     </script>
 </body>

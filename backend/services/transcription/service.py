@@ -1,11 +1,11 @@
 """Orchestrator for the transcription service.
 
-Supports two modes selected via the SAGEMAKER_ENDPOINT_NAME env var:
+Supports two modes selected via the TRANSCRIPTION_ENDPOINT_NAME env var:
 
-  • SageMaker mode  — set SAGEMAKER_ENDPOINT_NAME; audio is chunked on the
+  • SageMaker mode  — set TRANSCRIPTION_ENDPOINT_NAME; audio is chunked on the
                       backend then each chunk is sent to the GPU endpoint.
   • Local mode      — model is loaded into memory (original behaviour);
-                      used when SAGEMAKER_ENDPOINT_NAME is not set.
+                      used when TRANSCRIPTION_ENDPOINT_NAME is not set.
 """
 
 import io
@@ -30,9 +30,9 @@ class TranscriptionService:
         Initialise in either SageMaker or local mode.
 
         SageMaker mode is activated when the environment variable
-        SAGEMAKER_ENDPOINT_NAME is set to a non-empty string.
+        TRANSCRIPTION_ENDPOINT_NAME is set to a non-empty string.
         """
-        endpoint_name = os.getenv("SAGEMAKER_ENDPOINT_NAME", "").strip()
+        endpoint_name = os.getenv("TRANSCRIPTION_ENDPOINT_NAME", "").strip()
 
         if endpoint_name:
             region = os.getenv("AWS_REGION", "ap-south-1")

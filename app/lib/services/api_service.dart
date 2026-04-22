@@ -9,7 +9,11 @@ import 'api_exception.dart';
 class ApiService {
   // Use 10.0.2.2 for Android emulator, localhost for iOS simulator
   // static const String baseUrl = 'http://10.0.2.2:8000'; 
-  static const String baseUrl = 'https://full-classic-terrier.ngrok-free.app'; 
+  static const String baseUrl = 'https://um90p4chb0.execute-api.ap-south-1.amazonaws.com/prod';
+
+  // Frontend pages hosted on GitHub Pages (used by WebView for register, etc.)
+  static const String webUrl = 'https://shigpi.github.io/fyp';
+
   final _storage = const FlutterSecureStorage();
 
   void _checkUnauthorized(int statusCode) {

@@ -20,7 +20,7 @@ class _RegisterPageState extends State<RegisterPage> {
   void initState() {
     super.initState();
 
-    final String registerUrl = '${ApiService.baseUrl}/register';
+    final String registerUrl = '${ApiService.webUrl}/pages/auth/register.html?app=flutter';
 
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)

@@ -6,6 +6,10 @@ Supports two modes selected via the TRANSCRIPTION_ENDPOINT_NAME env var:
                       backend then each chunk is sent to the GPU endpoint.
   • Local mode      — model is loaded into memory (original behaviour);
                       used when TRANSCRIPTION_ENDPOINT_NAME is not set.
+
+If SageMaker mode is selected but the endpoint is unreachable at startup,
+the service automatically falls back to local mode (provided the local
+model files exist under ai_models/).
 """
 
 import io
@@ -31,20 +35,31 @@ class TranscriptionService:
 
         SageMaker mode is activated when the environment variable
         TRANSCRIPTION_ENDPOINT_NAME is set to a non-empty string.
+        If the SageMaker endpoint is unreachable, falls back to local mode.
         """
         endpoint_name = os.getenv("TRANSCRIPTION_ENDPOINT_NAME", "").strip()
 
         if endpoint_name:
-            region = os.getenv("AWS_REGION", "ap-south-1")
-            self._sm_client = SageMakerTranscriptionClient(endpoint_name, region)
-            self._mode = "sagemaker"
-            print("transcribing in sagemaker")
-            logger.info(
-                "TranscriptionService using SageMaker endpoint: %s (%s)",
+            if self._try_sagemaker(endpoint_name):
+                return  # SageMaker mode ready
+
+
+            logger.warning(
+                "⚠️  SageMaker transcription endpoint '%s' is unreachable. "
+                "Falling back to local model.",
                 endpoint_name,
-                region,
+            )
+            if self._try_local(model_path):
+                return
+
+
+            self._mode = "unavailable"
+            logger.error(
+                "❌  Transcription service unavailable: SageMaker endpoint unreachable "
+                "and local model failed to load."
             )
         else:
+
             try:
                 self._init_local(model_path)
                 self._mode = "local"
@@ -54,7 +69,48 @@ class TranscriptionService:
                 traceback.print_exc()
                 raise ModelNotLoadedError(str(e)) from e
 
-    # ── Public API ─────────────────────────────────────────────────────────────
+
+
+    def _try_sagemaker(self, endpoint_name: str) -> bool:
+        """Try to initialise SageMaker mode and verify the endpoint is reachable."""
+        region = os.getenv("AWS_REGION", "ap-south-1")
+        try:
+            client = SageMakerTranscriptionClient(endpoint_name, region)
+
+            import boto3
+            sm = boto3.client("sagemaker", region_name=region)
+            resp = sm.describe_endpoint(EndpointName=endpoint_name)
+            status = resp.get("EndpointStatus", "Unknown")
+            if status != "InService":
+                logger.warning(
+                    "SageMaker endpoint '%s' exists but status is '%s' (not InService).",
+                    endpoint_name, status,
+                )
+                return False
+
+            self._sm_client = client
+            self._mode = "sagemaker"
+            logger.info(
+                "✅  TranscriptionService using SageMaker endpoint: %s (%s)",
+                endpoint_name, region,
+            )
+            return True
+        except Exception as exc:
+            logger.warning("SageMaker probe failed: %s", exc)
+            return False
+
+    def _try_local(self, model_path: str) -> bool:
+        """Try to initialise local model; return True on success."""
+        try:
+            self._init_local(model_path)
+            self._mode = "local"
+            logger.info("✅  TranscriptionService fell back to local mode successfully.")
+            return True
+        except Exception as exc:
+            logger.warning("Local model initialisation failed: %s", exc)
+            return False
+
+
 
     def transcribe(
         self,
@@ -73,6 +129,11 @@ class TranscriptionService:
         Returns:
             Tuple of (transcribed_text, duration_seconds).
         """
+        if getattr(self, "_mode", None) == "unavailable":
+            raise ModelNotLoadedError(
+                "Neither SageMaker endpoint nor local model are available."
+            )
+
         logger.info(
             "Transcribing [%s mode] — file: %s, language: %s, quota: %.1f min",
             self._mode,
@@ -85,7 +146,7 @@ class TranscriptionService:
             return self._transcribe_sagemaker(audio_path, language, minutes_remaining)
         return self._transcribe_local(audio_path, language, minutes_remaining)
 
-    # SageMaker mode 
+
     def _transcribe_sagemaker(
         self,
         audio_path: str,
@@ -96,10 +157,8 @@ class TranscriptionService:
         Chunk the audio on the backend, send each chunk to the SageMaker
         GPU endpoint, and join the results.
         """
-        # 1. Load & validate audio (reuses existing audio.py utilities)
         audio_data, duration = audio.load_and_validate(audio_path, minutes_remaining)
 
-        # 2. Chunk into ≤30 s segments
         chunks = audio.chunk_audio(audio_data)
         logger.info("Split audio into %d chunk(s) for SageMaker.", len(chunks))
 
@@ -125,7 +184,7 @@ class TranscriptionService:
         logger.info("SageMaker transcription complete.")
         return final_text, duration
 
-    # Local mode 
+
     def _init_local(self, model_path: str) -> None:
         """Load the Whisper model into local memory."""
         full_path, fallback_path = config.resolve_model_paths(model_path)
@@ -143,14 +202,11 @@ class TranscriptionService:
         from .exceptions import TranscriptionError
 
         try:
-            # 1. Load Audio
             audio_data, duration = audio.load_and_validate(audio_path, minutes_remaining)
 
-            # 2. Segment Audio
             chunks = audio.chunk_audio(audio_data)
             logger.info("Split audio into %d chunks for local processing.", len(chunks))
 
-            # 3. Prepare Generation Args
             gen_kwargs = {
                 "max_new_tokens": 440,
                 "return_timestamps": False,
@@ -174,7 +230,6 @@ class TranscriptionService:
 
             full_transcription: list[str] = []
 
-            # 4. Process Each Chunk
             for i, chunk in enumerate(chunks):
                 if len(chunk) < 16_000 * 0.1:
                     continue

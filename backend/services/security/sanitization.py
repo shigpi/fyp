@@ -21,11 +21,8 @@ def sanitize_string(value: str) -> str:
     """
     if not isinstance(value, str):
         return value
-    # Decode HTML entities first (&amp; → &, etc.)
     decoded = html.unescape(value)
-    # Remove all HTML tags
     no_tags = re.sub(r"<[^>]+>", "", decoded)
-    # Collapse internal whitespace, strip leading/trailing
     cleaned = re.sub(r"\s+", " ", no_tags).strip()
     return cleaned
 

@@ -18,7 +18,7 @@ def get_org_member(db: Session, user_id: int, org_id: int) -> OrgMember:
     return db.query(OrgMember).filter(OrgMember.user_id == user_id, OrgMember.org_id == org_id).first()
 
 
-# ── Endpoints for Team Organisation Owners / Admins ──────────────────────────
+
 
 
 @router.get("/{org_id}/members")

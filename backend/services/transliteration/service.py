@@ -6,6 +6,10 @@ Supports two modes selected via the TRANSLITERATION_ENDPOINT_NAME env var:
                       the GPU/CPU endpoint for transliteration.
   • Local mode      — model is loaded into memory (original behaviour);
                       used when TRANSLITERATION_ENDPOINT_NAME is not set.
+
+If SageMaker mode is selected but the endpoint is unreachable at startup,
+the service automatically falls back to local mode (provided the local
+model files exist under ai_models/).
 """
 
 import logging
@@ -26,20 +30,57 @@ class TransliterationService:
         endpoint_name = os.getenv("TRANSLITERATION_ENDPOINT_NAME", "").strip()
 
         if endpoint_name:
-            # ── SageMaker mode ────────────────────────────────────────────────
-            from .sagemaker_client import SageMakerTransliterationClient
+            if self._try_sagemaker(endpoint_name):
+                return  # SageMaker mode ready
 
-            region = os.getenv("AWS_REGION", "ap-south-1")
+            # SageMaker unreachable — fall back to local
+            logger.warning(
+                "⚠️  SageMaker transliteration endpoint '%s' is unreachable. "
+                "Falling back to local model.",
+                endpoint_name,
+            )
+            self._init_local_safe()
+        else:
+            # No endpoint configured — go straight to local
+            self._init_local_safe()
+
+    # ── SageMaker probe ───────────────────────────────────────────────────────
+
+    def _try_sagemaker(self, endpoint_name: str) -> bool:
+        """Try to initialise SageMaker mode and verify the endpoint is reachable."""
+        region = os.getenv("AWS_REGION", "ap-south-1")
+        try:
+            from .sagemaker_client import SageMakerTransliterationClient
+            import boto3
+
+            # Probe: describe the endpoint to check if it exists and is in service
+            sm = boto3.client("sagemaker", region_name=region)
+            resp = sm.describe_endpoint(EndpointName=endpoint_name)
+            status = resp.get("EndpointStatus", "Unknown")
+            if status != "InService":
+                logger.warning(
+                    "SageMaker endpoint '%s' exists but status is '%s' (not InService).",
+                    endpoint_name, status,
+                )
+                return False
+
             self._sm_client = SageMakerTransliterationClient(endpoint_name, region)
             self._mode = "sagemaker"
             self.model = None
             logger.info(
-                "TransliterationService using SageMaker endpoint: %s (%s)",
-                endpoint_name,
-                region,
+                "✅  TransliterationService using SageMaker endpoint: %s (%s)",
+                endpoint_name, region,
             )
-        else:
-            # ── Local mode (original behaviour) ──────────────────────────────
+            return True
+        except Exception as exc:
+            logger.warning("SageMaker probe failed: %s", exc)
+            return False
+
+    # ── Local mode init (safe — won't crash the app) ──────────────────────────
+
+    def _init_local_safe(self):
+        """Attempt local model init; on failure set mode to 'unavailable'."""
+        try:
             import torch
             from .config import resolve_model_path, detect_device
             from .exceptions import ModelNotLoadedError
@@ -52,6 +93,14 @@ class TransliterationService:
             self.src_itos = {}
             self.tgt_itos = {}
             self._load_model()
+            logger.info("✅  TransliterationService initialised in local mode.")
+        except Exception as exc:
+            self._mode = "unavailable"
+            self.model = None
+            logger.error(
+                "❌  Transliteration service unavailable: local model failed to load (%s).",
+                exc,
+            )
 
     @staticmethod
     def get_instance():
@@ -145,6 +194,9 @@ class TransliterationService:
         return self._transliterate_word(word, max_length)
 
     def transliterate(self, text: str) -> str:
+        if self._mode == "unavailable":
+            logger.warning("Transliteration requested but service is unavailable; returning raw text.")
+            return text
         if self._mode == "sagemaker":
             return self._sm_client.transliterate(text)
         return self._transliterate_local(text)

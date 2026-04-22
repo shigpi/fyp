@@ -11,7 +11,6 @@ import soundfile as sf
 
 logger = logging.getLogger(__name__)
 
-# Maximum payload size SageMaker real-time endpoints accept (6 MB)
 _MAX_PAYLOAD_BYTES = 6 * 1024 * 1024
 
 
@@ -63,7 +62,6 @@ class SageMakerTranscriptionClient:
                 "Chunk payload %d bytes exceeds 6 MB limit — trimming chunk.",
                 len(wav_bytes),
             )
-            # Trim chunk to fit — very unlikely with ≤30 s at 16 kHz
             max_samples = (_MAX_PAYLOAD_BYTES // 4) - 1000
             audio_chunk = audio_chunk[:max_samples]
             wav_bytes = self._array_to_wav_bytes(audio_chunk, sample_rate)
@@ -78,7 +76,6 @@ class SageMakerTranscriptionClient:
                 )
                 result = json.loads(response["Body"].read())
                 
-                # Handle tuple returned by output_fn being serialized as list by DLC
                 if isinstance(result, list) and len(result) > 0 and isinstance(result[0], str):
                     result = json.loads(result[0])
                 

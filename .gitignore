@@ -1,54 +1,39 @@
-# Python-generated files
+#  Python 
 __pycache__/
 *.py[oc]
 build/
 dist/
 wheels/
 *.egg-info
-.python-version
-.pytest_cache
+.pytest_cache/
 
-# Virtual environments
-.venv
+#  Virtual environments 
+.venv/
 venv/
 
-# Apple
+#  OS / Editor 
 .DS_Store
+.python-version
 
-# Miscelleneous
-/design_ref
-/to learn
-/fyp_documentation
-
-# ai models
-/ai_models
-
-# backend debug files
-/download_small.py
-/dummy.wav
-/reproduce_issue.py
-/upload_transliteration_model.py
-
-backend/cleanup_duplicate_usage.py
-backend/debug_init.py
-backend/reset_db.py
-backend/seed_admin.py
-backend/fix_sequence.py
-backend/debug_init.py
-backend/debug_whisper.py
-backend/migrate_esewa.py
-backend/generate_postman.py
-backend/postman_collection.json
-
-# backend tests
-backend/tests/
-
-# api keys/secrets
+#  Secrets 
 .env
 
-# esewa flutter sdk
-app/esewa_flutter_sdk
+#  AI models (large binaries) 
+/ai_models/
 
-# deployment files
-/requirements.txt
+#  Misc (moved debug scripts, old files, design refs) 
+/misc/
+
+#  Backend 
 backend/requirements.txt
+backend/fallback.db
+backend/tests/
+
+#  Temporary runtime files 
+/temp_audio/
+
+#  Flutter / app 
+app/esewa_flutter_sdk/
+
+#  Deployment 
+backend_deployment/.aws-sam/

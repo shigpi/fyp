@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 from backend.models.subscription import SubscriptionType
 
-# -- Subscription Schemas --
+
 class SubscriptionBase(BaseModel):
     plan_id: int
     type: SubscriptionType
@@ -37,7 +37,7 @@ class SubscriptionResponse(SubscriptionBase):
 
     model_config = ConfigDict(from_attributes=True)
 
-# -- Admin Subscription Schemas --
+
 class AdminSubscriptionCreate(BaseModel):
     org_id: int
     plan_id: int

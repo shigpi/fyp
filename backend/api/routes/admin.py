@@ -37,7 +37,7 @@ from backend.services.security.service import security_service
 
 router = APIRouter()
 
-# ── User CRUD ──────────────────────────────────────────────
+
 
 
 @router.get("/users", response_model=List[UserResponse])
@@ -170,7 +170,7 @@ def delete_user(
     return user
 
 
-# ── Organisation CRUD ──────────────────────────────────────
+
 
 @router.get("/organizations", response_model=List[OrganizationResponse])
 @limiter.limit(API_LIMIT)
@@ -280,7 +280,7 @@ def delete_organization(
     return data
 
 
-# ── Plan CRUD ──────────────────────────────────────────────
+
 
 @router.get("/plans", response_model=List[PlanResponse])
 @limiter.limit(API_LIMIT)
@@ -359,7 +359,7 @@ def delete_plan(
     return plan
 
 
-# ── Subscription CRUD ──────────────────────────────────────
+
 
 @router.get("/subscriptions", response_model=List[SubscriptionResponse])
 @limiter.limit(API_LIMIT)
@@ -473,7 +473,7 @@ def delete_subscription(
     return data
 
 
-# ── Org Member CRUD ────────────────────────────────────────
+
 
 def _enrich_member(db: Session, data: OrgMemberResponse, member: OrgMember) -> OrgMemberResponse:
     org = db.query(Organization).filter(Organization.id == member.org_id).first()
@@ -584,7 +584,7 @@ def delete_org_member(
     return data
 
 
-# ── Subscription Usage CRUD ────────────────────────────────
+
 
 def _enrich_usage(db: Session, data: SubscriptionUsageResponse, usage: SubscriptionUsage) -> SubscriptionUsageResponse:
     org = db.query(Organization).filter(Organization.id == usage.org_id).first()
@@ -695,7 +695,7 @@ def delete_subscription_usage(
     return data
 
 
-# ── Global Search (by name or email) ─────────────────────
+
 
 @router.get("/search")
 @limiter.limit(API_LIMIT)

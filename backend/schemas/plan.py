@@ -2,7 +2,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict
 from decimal import Decimal
 
-# -- Plan Schemas --
+
 class PlanBase(BaseModel):
     name: str
     price_month: Decimal
@@ -14,7 +14,7 @@ class PlanResponse(PlanBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
 
-# -- Admin Plan Schemas --
+
 class AdminPlanCreate(BaseModel):
     name: str
     price_month: float = 0

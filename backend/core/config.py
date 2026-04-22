@@ -6,7 +6,7 @@ class Settings:
         self.PROJECT_NAME: str = "VoiceScribe Backend"
         self.PROJECT_VERSION: str = "1.0.0"
 
-        # ── Database ──────────────────────────────────────────────────────────
+
         self.POSTGRES_USER: str = os.getenv("POSTGRES_USER")
         self.POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD")
         self.POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER")
@@ -14,7 +14,7 @@ class Settings:
         self.POSTGRES_DB: str = os.getenv("POSTGRES_DB")
 
 
-        # ── JWT (RS256) ────────────────────────────────────────────────────────
+
         self.JWT_PRIVATE_KEY_B64: str = os.getenv("JWT_PRIVATE_KEY_B64", "")
         self.JWT_PUBLIC_KEY_B64: str = os.getenv("JWT_PUBLIC_KEY_B64", "")
         self.ALGORITHM: str = os.getenv("JWT_ALGORITHM", "RS256")
@@ -22,11 +22,11 @@ class Settings:
             os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
         )
 
-        # ── CORS ──────────────────────────────────────────────────────────────
+
         _raw_origins: str = os.getenv(
             "ALLOWED_ORIGINS",
             ",".join([
-                "https://full-classic-terrier.ngrok-free.app",
+                "https://shigpi.github.io",
                 "http://localhost:8000",
                 "http://127.0.0.1:8000",
                 "http://localhost:3000",
@@ -35,14 +35,14 @@ class Settings:
         )
         self.ALLOWED_ORIGINS: list = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
-        # ── Rate limiting ──────────────────────────────────────────────────────
+
         self.RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
 
-        # ── External payment ──────────────────────────────────────────────────
+
         self.ESEWA_CLIENT_ID: str = os.getenv("ESEWA_CLIENT_ID", "")
         self.ESEWA_SECRET_KEY: str = os.getenv("ESEWA_SECRET_KEY", "")
 
-        # ── Mail ─────────────────────────────────────────────────────────────
+
         self.MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "")
         self.MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "")
         self.MAIL_FROM: str = os.getenv("MAIL_FROM", "no-reply@voicescribe.com")

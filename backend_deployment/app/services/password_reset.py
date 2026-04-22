@@ -30,7 +30,7 @@ from app.core.config import settings
 from app.models.password_reset_token import PasswordResetToken, TOKEN_TTL_MINUTES
 from app.services.email_verification import conf  # reuse same mail config
 
-FRONTEND_BASE_URL = "https://full-classic-terrier.ngrok-free.app"
+FRONTEND_BASE_URL = "https://shigpi.github.io/fyp/pages/auth"
 
 
 def _sha256(raw: str) -> str:
@@ -77,7 +77,7 @@ class PasswordResetService:
 
     async def send_reset_email(self, email: str, raw_token: str) -> None:
         """Send the branded HTML reset email. Errors are logged, not raised."""
-        reset_link = f"{FRONTEND_BASE_URL}/reset-password?token={raw_token}"
+        reset_link = f"{FRONTEND_BASE_URL}/reset_password.html?token={raw_token}"
         html_body = _build_email_html(reset_link)
 
         message = MessageSchema(

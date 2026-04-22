@@ -27,12 +27,12 @@ app = FastAPI(
     redoc_url=None
 )
 
-# ── Rate limiting ─────────────────────────────────────────────────────────────
+
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
-# ── CORS ─────────────────────────────────────────────────────────────────────
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
@@ -42,7 +42,7 @@ app.add_middleware(
 )
 
 
-# ── Security headers middleware ───────────────────────────────────────────────
+
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -56,7 +56,7 @@ async def add_security_headers(request: Request, call_next):
 import traceback
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-# ── Validation error handler ──────────────────────────────────────────────────
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Format Pydantic validation errors into clean user-friendly strings."""
@@ -67,7 +67,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         field = str(loc[-1]) if len(loc) > 0 else "Field"
         msg = error.get("msg", "Invalid value")
         
-        # Clean up Pydantic's "Value error, " prefix to make it more human-readable
         if msg.startswith("Value error, "):
             msg = msg[len("Value error, "):]
             
@@ -78,7 +77,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": " | ".join(error_messages) or "Validation Error"}
     )
 
-# ── Standard HTTP Exceptions ──────────────────────────────────────────────────
+
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     """Ensure HTTP exceptions uniformly return the 'detail' JSON structure."""
@@ -87,7 +86,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         content={"detail": str(exc.detail)}
     )
 
-# ── Global unhandled wrapper ──────────────────────────────────────────────────
+
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     """Catch-all for 500 errors to prevent HTML stack traces on the client side."""
@@ -99,7 +98,7 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
-# ── Routers ───────────────────────────────────────────────────────────────────
+
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
@@ -108,7 +107,7 @@ app.include_router(transliteration.router, prefix="/transliterate", tags=["trans
 app.include_router(docs.router, prefix="/admin", tags=["docs"])
 app.include_router(organizations.router, prefix="/organizations", tags=["organizations"])
 
-# ── Static / frontend pages ───────────────────────────────────────────────────
+
 # Serve static files with no-cache headers so browsers always fetch fresh JS/CSS
 from starlette.staticfiles import StaticFiles as _StaticFiles
 from starlette.responses import Response
@@ -128,54 +127,54 @@ class NoCacheStaticFiles(_StaticFiles):
             await send(message)
         await super().__call__(scope, receive, send_with_no_cache)
 
-app.mount("/static", NoCacheStaticFiles(directory="frontend"), name="static")
+app.mount("/static", NoCacheStaticFiles(directory="docs"), name="static")
 
 
 @app.get("/")
 async def root_page():
-    return FileResponse("frontend/index.html")
+    return FileResponse("docs/index.html")
 
 
 @app.get("/login")
 async def login_page():
-    return FileResponse("frontend/pages/org/login.html")
+    return FileResponse("docs/pages/org/login.html")
 
 
 @app.get("/register")
 async def register_page():
-    return FileResponse("frontend/pages/auth/register.html")
+    return FileResponse("docs/pages/auth/register.html")
 
 
 @app.get("/verify-otp")
 async def verify_otp_page():
-    return FileResponse("frontend/pages/auth/verify_otp.html")
+    return FileResponse("docs/pages/auth/verify_otp.html")
 
 
 @app.get("/dashboard")
 async def dashboard_page():
-    return FileResponse("frontend/pages/admin/admin.html")
+    return FileResponse("docs/pages/admin/admin.html")
 
 
 @app.get("/admin")
 async def admin_page():
-    return FileResponse("frontend/pages/admin/admin.html")
+    return FileResponse("docs/pages/admin/admin.html")
 
 
 @app.get("/organization")
 async def organization_page():
-    return FileResponse("frontend/pages/org/organization.html")
+    return FileResponse("docs/pages/org/organization.html")
 
 
 @app.get("/app-store")
 async def app_store_page():
-    return FileResponse("frontend/pages/misc/app_store_redirect.html")
+    return FileResponse("docs/pages/misc/app_store_redirect.html")
 
 
 @app.get("/forgot-password")
 async def forgot_password_page():
-    return FileResponse("frontend/pages/auth/forgot_password.html")
+    return FileResponse("docs/pages/auth/forgot_password.html")
 
 
 @app.get("/reset-password")
 async def reset_password_page():
-    return FileResponse("frontend/pages/auth/reset_password.html")
+    return FileResponse("docs/pages/auth/reset_password.html")

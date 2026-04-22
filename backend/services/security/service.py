@@ -36,15 +36,11 @@ from backend.core.database import SessionLocal
 from backend.models.user import User, UserRole
 
 
-# ---------------------------------------------------------------------------
-# OAuth2 scheme — used by FastAPI to extract the Bearer token from the header
-# ---------------------------------------------------------------------------
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
-# ---------------------------------------------------------------------------
-# DB session dependency (kept here so routes can import from one place)
-# ---------------------------------------------------------------------------
+
 def get_db():
     db = SessionLocal()
     try:
@@ -53,18 +49,14 @@ def get_db():
         db.close()
 
 
-# ---------------------------------------------------------------------------
-# SecurityService
-# ---------------------------------------------------------------------------
+
 class SecurityService:
     """
     Centralised security service. Instantiated once as a module-level
     singleton and injected via FastAPI's DI system.
     """
 
-    # ------------------------------------------------------------------
-    # Password helpers
-    # ------------------------------------------------------------------
+
 
     def hash_password(self, plain: str) -> str:
         """Return a bcrypt hash of *plain*."""
@@ -78,9 +70,7 @@ class SecurityService:
         except Exception:
             return False
 
-    # ------------------------------------------------------------------
-    # JWT helpers
-    # ------------------------------------------------------------------
+
 
     def create_access_token(
         self,
@@ -148,9 +138,7 @@ class SecurityService:
         except JWTError:
             raise credentials_exc
 
-    # ------------------------------------------------------------------
-    # FastAPI dependencies
-    # ------------------------------------------------------------------
+
 
     def get_current_user(
         self,
@@ -197,8 +185,7 @@ class SecurityService:
         -----
             Depends(security_service.require_role(UserRole.admin, UserRole.super_admin))
         """
-        # We need to capture `self` + `roles` in a closure.
-        # The returned function is a valid FastAPI dependency.
+
         svc = self
         allowed = {r.value if isinstance(r, UserRole) else r for r in roles}
 
@@ -223,16 +210,11 @@ class SecurityService:
         return _check_role
 
 
-# ---------------------------------------------------------------------------
-# Module-level singleton
-# ---------------------------------------------------------------------------
+
 security_service = SecurityService()
 
 
-# ---------------------------------------------------------------------------
-# Convenience callables — these are the functions routes should Depends() on.
-# They bind `self` so FastAPI's reflection-based DI works correctly.
-# ---------------------------------------------------------------------------
+
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),

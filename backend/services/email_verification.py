@@ -9,7 +9,7 @@ from jose import jwt, JWTError
 
 from backend.core.config import settings
 
-# ── Mail Configuration ────────────────────────────────────────────────────────
+
 conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
     MAIL_PASSWORD=settings.MAIL_PASSWORD,
@@ -76,14 +76,14 @@ class EmailVerificationService:
                 algorithms=[settings.ALGORITHM]
             )
             
-            # Validate token type
+
             if payload.get("type") != "email_verification":
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid token type"
                 )
                 
-            # Validate OTP
+
             if payload.get("otp") != otp:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -115,9 +115,7 @@ class EmailVerificationService:
 email_verification_service = EmailVerificationService()
 
 
-# ---------------------------------------------------------------------------
-# Email HTML template
-# ---------------------------------------------------------------------------
+
 
 def _build_verification_email_html(email: str, otp: str) -> str:
     """Build a branded HTML email for OTP verification, matching the password reset style."""

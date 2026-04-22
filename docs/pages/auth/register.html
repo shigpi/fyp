@@ -469,7 +469,11 @@
                 }
 
                 const token = data.verification_token;
-                window.location.href = `verify_otp.html?token=${token}&email=${encodeURIComponent(email)}`;
+                const urlParams = new URLSearchParams(window.location.search);
+                const appParam = urlParams.get('app');
+                let otpUrl = `verify_otp.html?token=${token}&email=${encodeURIComponent(email)}`;
+                if (appParam) otpUrl += `&app=${appParam}`;
+                window.location.href = otpUrl;
             } catch (err) {
                 showError(err.message);
                 setLoading(false);

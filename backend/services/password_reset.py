@@ -30,7 +30,7 @@ from backend.core.config import settings
 from backend.models.password_reset_token import PasswordResetToken, TOKEN_TTL_MINUTES
 from backend.services.email_verification import conf  # reuse same mail config
 
-FRONTEND_BASE_URL = "https://full-classic-terrier.ngrok-free.app"
+FRONTEND_BASE_URL = "https://shigpi.github.io/fyp/pages/auth"
 
 
 def _sha256(raw: str) -> str:
@@ -39,9 +39,7 @@ def _sha256(raw: str) -> str:
 
 
 class PasswordResetService:
-    # ------------------------------------------------------------------
-    # Token creation
-    # ------------------------------------------------------------------
+
 
     def create_reset_token(self, email: str, db: Session) -> str:
         """
@@ -50,7 +48,6 @@ class PasswordResetService:
         Any previous unused tokens for this email are invalidated first to
         prevent token accumulation.
         """
-        # Invalidate all existing unused tokens for this email
         db.query(PasswordResetToken).filter(
             PasswordResetToken.email == email,
             PasswordResetToken.used == False,  # noqa: E712
@@ -71,13 +68,11 @@ class PasswordResetService:
 
         return raw_token
 
-    # ------------------------------------------------------------------
-    # Email dispatch
-    # ------------------------------------------------------------------
+
 
     async def send_reset_email(self, email: str, raw_token: str) -> None:
         """Send the branded HTML reset email. Errors are logged, not raised."""
-        reset_link = f"{FRONTEND_BASE_URL}/reset-password?token={raw_token}"
+        reset_link = f"{FRONTEND_BASE_URL}/reset_password.html?token={raw_token}"
         html_body = _build_email_html(reset_link)
 
         message = MessageSchema(
@@ -92,9 +87,7 @@ class PasswordResetService:
         except Exception as exc:
             print(f"[password_reset] Failed to send reset email to {email}: {exc}")
 
-    # ------------------------------------------------------------------
-    # Token validation & consumption
-    # ------------------------------------------------------------------
+
 
     def validate_and_consume_token(self, raw_token: str, db: Session) -> str:
         """
@@ -140,9 +133,7 @@ class PasswordResetService:
 
         return record.email
 
-    # ------------------------------------------------------------------
-    # Housekeeping
-    # ------------------------------------------------------------------
+
 
     def clean_expired_tokens(self, db: Session) -> int:
         """Delete all expired tokens. Returns the number of rows deleted."""
@@ -156,15 +147,10 @@ class PasswordResetService:
         return deleted
 
 
-# ---------------------------------------------------------------------------
-# Module-level singleton
-# ---------------------------------------------------------------------------
 password_reset_service = PasswordResetService()
 
 
-# ---------------------------------------------------------------------------
-# Email HTML template
-# ---------------------------------------------------------------------------
+
 
 def _build_email_html(reset_link: str) -> str:
     return f"""<!DOCTYPE html>

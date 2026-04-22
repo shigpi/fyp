@@ -10,7 +10,7 @@ from backend.models.org_member import OrgRole
 from backend.services.security.sanitization import sanitize_string
 
 
-# -- Organisation Schemas --
+
 
 class OrganizationBase(BaseModel):
     name: str
@@ -45,7 +45,7 @@ class OrganizationResponse(OrganizationBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# -- Admin Organisation Schemas --
+
 
 class AdminOrganizationCreate(BaseModel):
     name: str
@@ -68,7 +68,7 @@ class AdminOrganizationUpdate(BaseModel):
         return sanitize_string(v) if v else v
 
 
-# -- OrgMember Schemas --
+
 
 class OrgMemberBase(BaseModel):
     role: OrgRole

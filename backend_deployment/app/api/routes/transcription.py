@@ -94,7 +94,7 @@ async def transcribe_audio(
                 detail=f"File {file.filename} is not an audio file (type: {file.content_type})",
             )
 
-    temp_dir = "temp_audio"
+    temp_dir = "/tmp/temp_audio"
     os.makedirs(temp_dir, exist_ok=True)
     file_extension = os.path.splitext(file.filename)[1]
     temp_filename = f"{uuid.uuid4()}{file_extension}"

@@ -7,7 +7,12 @@ import torch
 
 logger = logging.getLogger(__name__)
 
-# Base model directory name used as a fallback for processor files
+# HuggingFace repo IDs for auto-download
+_HF_PRIMARY_REPO = "kkarhm/whisper-nep-eng-codemixed-small"
+_HF_FALLBACK_REPO = "openai/whisper-small"
+
+# Relative directory paths under the project root
+_PRIMARY_MODEL_DIR = "ai_models/whisper-nepali-small"
 _FALLBACK_MODEL_DIR = "ai_models/whisper-small"
 
 
@@ -18,24 +23,46 @@ def _get_project_root() -> str:
     )
 
 
+def _download_model(repo_id: str, local_dir: str) -> None:
+    """
+    Download a model from HuggingFace Hub into *local_dir*.
+
+    Creates the target directory automatically. Uses snapshot_download
+    so the full model (weights, config, tokenizer, etc.) is fetched.
+    """
+    from huggingface_hub import snapshot_download
+
+    logger.info(
+        "Model not found locally — downloading '%s' into %s  (this may take a while) …",
+        repo_id,
+        local_dir,
+    )
+    os.makedirs(local_dir, exist_ok=True)
+    snapshot_download(repo_id=repo_id, local_dir=local_dir)
+    logger.info("Download complete: %s", local_dir)
+
+
 def resolve_model_paths(
-    model_path: str = "ai_models/whisper-nepali-small",
+    model_path: str = _PRIMARY_MODEL_DIR,
 ) -> tuple[str, str]:
     """
     Resolve relative model paths to absolute paths.
 
+    If the directories do not exist, the models are automatically
+    downloaded from HuggingFace Hub.
+
     Returns:
         (full_model_path, fallback_model_path) — both absolute.
-
-    Raises:
-        FileNotFoundError: If the primary model directory does not exist.
     """
     root = _get_project_root()
     full_model_path = os.path.join(root, model_path)
     fallback_model_path = os.path.join(root, _FALLBACK_MODEL_DIR)
 
     if not os.path.exists(full_model_path):
-        raise FileNotFoundError(f"Model directory not found at: {full_model_path}")
+        _download_model(_HF_PRIMARY_REPO, full_model_path)
+
+    if not os.path.exists(fallback_model_path):
+        _download_model(_HF_FALLBACK_REPO, fallback_model_path)
 
     logger.info("Model path resolved: %s", full_model_path)
     return full_model_path, fallback_model_path

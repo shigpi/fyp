@@ -21,7 +21,7 @@ import sagemaker
 from sagemaker.huggingface.model import HuggingFaceModel
 
 # ── Configuration ──────────────────────────────────────────────────────────────
-HF_MODEL_ID   = "kkarhm/whisper-nep-eng-codemixed-peft-small"
+HF_MODEL_ID   = "kkarhm/whisper-nep-eng-codemixed-small"
 ENDPOINT_NAME = "voicescribe-whisper-endpoint"
 INSTANCE_TYPE = "ml.g4dn.xlarge"   # 16 GB GPU VRAM, 4 vCPUs, ~$0.94/hr
 REGION        = os.getenv("AWS_REGION", "ap-south-1")
@@ -103,7 +103,6 @@ def deploy():
         py_version=PY_VERSION,
         env={
             "HF_MODEL_ID": HF_MODEL_ID,
-            "HF_TASK": "automatic-speech-recognition",
         },
     )
 
